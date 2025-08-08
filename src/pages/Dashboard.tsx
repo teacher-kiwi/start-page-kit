@@ -366,8 +366,14 @@ const Dashboard = () => {
 
   const handleCreateSurvey = () => {
     if (school && grade && classNumber) {
-      alert("설문지와 함께 QR코드가 생성됩니다.")
-      // 여기에 실제 설문지 생성 로직 추가
+      // QR코드 페이지로 이동하면서 학급 정보를 쿼리 파라미터로 전달
+      const params = new URLSearchParams({
+        school,
+        grade,
+        class: classNumber,
+        teacher: teacherName
+      })
+      navigate(`/qrcode?${params.toString()}`)
     } else {
       alert("모든 정보를 입력해주세요.")
     }
