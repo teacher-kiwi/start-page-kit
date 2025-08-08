@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { KoreanInput } from "@/components/ui/korean-input"
 import { Card } from "@/components/ui/card"
@@ -6,12 +7,20 @@ import { User, Lock } from "lucide-react"
 import cloudMascot from "@/assets/cloud-mascot.png"
 
 export const LoginForm = () => {
+  const navigate = useNavigate()
   const [userId, setUserId] = useState("")
   const [password, setPassword] = useState("")
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault()
-    console.log("Login attempt:", { userId, password })
+    
+    if (userId.trim()) {
+      // 아이디를 teacher_name으로 로컬스토리지에 저장
+      localStorage.setItem("teacher_name", userId.trim())
+      
+      // 다음 페이지로 이동
+      navigate("/dashboard")
+    }
   }
 
   return (
