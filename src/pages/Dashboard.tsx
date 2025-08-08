@@ -143,52 +143,59 @@ const Dashboard = () => {
             </div>
             
             {/* 학생 입력 목록 */}
-            <div className="space-y-4">
+            <div className="space-y-3">
               {studentInputs.map((studentInput, index) => (
-                <div key={studentInput.id} className="border border-border rounded-lg p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-foreground">
-                      학생 {index + 1}
-                    </span>
-                    <button
-                      onClick={() => removeStudentInput(studentInput.id)}
-                      className="text-muted-foreground hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                <div key={studentInput.id} className="flex items-center gap-4 p-4 border border-border rounded-lg">
+                  <span className="text-sm font-medium text-foreground min-w-[60px]">
+                    {index + 1}
+                  </span>
+                  
+                  <div className="flex-1">
+                    <KoreanInput
+                      type="text"
+                      placeholder="학생 이름을 입력하세요"
+                      value={studentInput.name}
+                      onChange={(e) => updateStudentName(studentInput.id, e.target.value)}
+                    />
                   </div>
                   
-                  <div className="space-y-3">
-                    {/* 학생 이름 입력 */}
-                    <div className="space-y-1">
-                      <label className="text-xs text-muted-foreground">이름</label>
-                      <KoreanInput
-                        type="text"
-                        placeholder="학생 이름을 입력하세요"
-                        value={studentInput.name}
-                        onChange={(e) => updateStudentName(studentInput.id, e.target.value)}
+                  <div className="flex-1">
+                    <div className="relative">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => updateStudentImage(studentInput.id, e.target.files?.[0] || null)}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        id={`image-${studentInput.id}`}
                       />
-                    </div>
-                    
-                    {/* 학생 이미지 업로드 */}
-                    <div className="space-y-1">
-                      <label className="text-xs text-muted-foreground">사진</label>
-                      <div className="relative">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => updateStudentImage(studentInput.id, e.target.files?.[0] || null)}
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        />
+                      {studentInput.image ? (
+                        <div className="flex items-center gap-2 p-3 border border-border rounded-xl bg-input">
+                          <img 
+                            src={URL.createObjectURL(studentInput.image)} 
+                            alt="Student preview"
+                            className="w-8 h-8 rounded-full object-cover"
+                          />
+                          <span className="text-sm text-foreground truncate">
+                            {studentInput.image.name}
+                          </span>
+                        </div>
+                      ) : (
                         <div className="flex items-center gap-2 p-3 border border-border rounded-xl bg-input hover:bg-accent transition-colors">
                           <Upload className="h-4 w-4 text-muted-foreground" />
                           <span className="text-sm text-muted-foreground">
-                            {studentInput.image ? studentInput.image.name : "사진을 선택하세요"}
+                            사진을 선택하세요
                           </span>
                         </div>
-                      </div>
+                      )}
                     </div>
                   </div>
+                  
+                  <button
+                    onClick={() => removeStudentInput(studentInput.id)}
+                    className="text-muted-foreground hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
               ))}
               
@@ -200,17 +207,17 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* 완전지 생성 버튼 */}
+          {/* 설문지 생성 버튼 */}
           <div className="space-y-4 pt-4">
             <Button 
               onClick={handleCreateClass}
               variant="korean" 
               className="w-full h-12"
             >
-              완전지 생성하기
+              설문지 생성하기
             </Button>
             <p className="text-center text-sm text-muted-foreground">
-              점문지와 함께 QR코드가 생성됩니다.
+              설문지와 함께 QR코드가 생성됩니다.
             </p>
           </div>
         </Card>
