@@ -154,6 +154,55 @@ const ResultsPage = () => {
     return results.find(r => r.student.id === selectedStudent.id)
   }
 
+  const generateAIContent = async () => {
+    if (!selectedResult || !selectedStudent) {
+      alert('학생을 선택해주세요.')
+      return
+    }
+
+    try {
+      const responseData = {
+        student: {
+          id: selectedStudent.id,
+          name: selectedStudent.name,
+          student_number: selectedStudent.student_number,
+          classroom: {
+            school_name: classroom?.school_name,
+            grade: classroom?.grade,
+            class_number: classroom?.class_number
+          }
+        },
+        responses: selectedResult.responses.map(response => ({
+          question_id: response.question_id,
+          question_text: response.question?.question_text,
+          polarity: response.question?.polarity,
+          target_student: {
+            id: response.target_student?.id,
+            name: response.target_student?.name,
+            student_number: response.target_student?.student_number
+          }
+        }))
+      }
+
+      const response = await fetch('https://leejs05.app.n8n.cloud/webhook-test/bc771d4c-001d-460b-a281-3685aef829a0', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(responseData)
+      })
+
+      if (response.ok) {
+        alert('AI 상담 내용이 성공적으로 생성되었습니다.')
+      } else {
+        throw new Error('서버 응답 오류')
+      }
+    } catch (error) {
+      console.error('AI 생성 오류:', error)
+      alert('AI 상담 내용 생성 중 오류가 발생했습니다.')
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-orange-50 flex items-center justify-center">
@@ -280,7 +329,7 @@ const ResultsPage = () => {
 
                   {/* 학부모 상담 내용 AI 생성 버튼 */}
                   <div className="pt-4">
-                    <Button variant="outline" className="mb-4">
+                    <Button variant="outline" className="mb-4" onClick={generateAIContent}>
                       학부모 상담 내용 AI 생성
                     </Button>
                     
