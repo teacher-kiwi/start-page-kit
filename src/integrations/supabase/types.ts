@@ -62,6 +62,73 @@ export type Database = {
         }
         Relationships: []
       }
+      questions: {
+        Row: {
+          created_at: string | null
+          id: string
+          polarity: string
+          question_text: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          polarity: string
+          question_text: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          polarity?: string
+          question_text?: string
+        }
+        Relationships: []
+      }
+      relationship_responses: {
+        Row: {
+          created_at: string | null
+          id: string
+          question_id: string
+          respondent_id: string
+          target_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          question_id: string
+          respondent_id: string
+          target_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          question_id?: string
+          respondent_id?: string
+          target_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "relationship_responses_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "relationship_responses_respondent_id_fkey"
+            columns: ["respondent_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "relationship_responses_target_id_fkey"
+            columns: ["target_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       students: {
         Row: {
           classroom_id: string | null

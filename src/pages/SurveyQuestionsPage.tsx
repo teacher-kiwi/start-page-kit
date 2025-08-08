@@ -51,7 +51,7 @@ const SurveyQuestionsPage = () => {
       
       // 문항들 가져오기
       const { data: questionsData, error: questionsError } = await supabase
-        .from('questions')
+        .from('questions' as any)
         .select('*')
         .order('created_at', { ascending: true })
 
@@ -88,7 +88,7 @@ const SurveyQuestionsPage = () => {
         return
       }
 
-      setQuestions(questionsData || [])
+      setQuestions((questionsData as unknown as Question[]) || [])
       setStudents(studentsData || [])
     } catch (error) {
       console.error('Error:', error)
@@ -156,7 +156,7 @@ const SurveyQuestionsPage = () => {
       }))
 
       const { error } = await supabase
-        .from('relationship_responses')
+        .from('relationship_responses' as any)
         .insert(responsesToSave)
 
       if (error) {
