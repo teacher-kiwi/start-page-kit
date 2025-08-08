@@ -222,12 +222,145 @@ const Dashboard = () => {
     }
   }
 
-  const handleUpdateClassroom = () => {
-    if (school && grade && classNumber) {
-      alert("학급 정보가 수정되었습니다.")
-      // 여기에 실제 수정 로직 추가 예정
-    } else {
+  const handleUpdateClassroom = async () => {
+    if (!school || !grade || !classNumber) {
       alert("모든 정보를 입력해주세요.")
+      return
+    }
+
+    try {
+      // 1. 학급 정보 업데이트 (변경된 것만)
+      const { data: currentClassroom, error: fetchError } = await supabase
+        .from('classrooms')
+        .select('*')
+        .eq('id', classroomId)
+        .single()
+
+      if (fetchError) {
+        console.error('Error fetching current classroom:', fetchError)
+        alert("현재 학급 정보를 불러오는 중 오류가 발생했습니다.")
+        return
+      }
+
+      // 학급 정보 변경 사항 확인 및 업데이트
+      const classroomUpdates: any = {}
+      if (currentClassroom.school_name !== school) classroomUpdates.school_name = school
+      if (currentClassroom.grade !== parseInt(grade)) classroomUpdates.grade = parseInt(grade)
+      if (currentClassroom.class_number !== parseInt(classNumber)) classroomUpdates.class_number = parseInt(classNumber)
+
+      if (Object.keys(classroomUpdates).length > 0) {
+        const { error: classroomUpdateError } = await supabase
+          .from('classrooms')
+          .update(classroomUpdates)
+          .eq('id', classroomId)
+
+        if (classroomUpdateError) {
+          console.error('Error updating classroom:', classroomUpdateError)
+          alert("학급 정보 수정 중 오류가 발생했습니다.")
+          return
+        }
+      }
+
+      // 2. 현재 학생 데이터 가져오기
+      const { data: currentStudents, error: studentsError } = await supabase
+        .from('students')
+        .select('*')
+        .eq('classroom_id', classroomId)
+
+      if (studentsError) {
+        console.error('Error fetching current students:', studentsError)
+        alert("현재 학생 정보를 불러오는 중 오류가 발생했습니다.")
+        return
+      }
+
+      // 3. 학생 데이터 변경사항 처리
+      const currentStudentIds = new Set(currentStudents?.map(s => s.id) || [])
+      const formStudentIds = new Set(
+        studentInputs
+          .filter(input => input.student_id)
+          .map(input => input.student_id)
+      )
+
+      // 삭제된 학생들
+      const studentsToDelete = currentStudents?.filter(s => !formStudentIds.has(s.id)) || []
+      
+      // 새로 추가된 학생들
+      const studentsToAdd = studentInputs.filter(input => 
+        !input.student_id && input.name.trim()
+      )
+
+      // 수정된 학생들
+      const studentsToUpdate = studentInputs.filter(input => {
+        if (!input.student_id || !input.name.trim()) return false
+        
+        const currentStudent = currentStudents?.find(s => s.id === input.student_id)
+        if (!currentStudent) return false
+        
+        return (
+          currentStudent.name !== input.name.trim() ||
+          currentStudent.photo_url !== (input.imageUrl || null)
+        )
+      })
+
+      // 4. 삭제 처리
+      if (studentsToDelete.length > 0) {
+        const { error: deleteError } = await supabase
+          .from('students')
+          .delete()
+          .in('id', studentsToDelete.map(s => s.id))
+
+        if (deleteError) {
+          console.error('Error deleting students:', deleteError)
+          alert("학생 삭제 중 오류가 발생했습니다.")
+          return
+        }
+      }
+
+      // 5. 추가 처리
+      if (studentsToAdd.length > 0) {
+        const newStudentsData = studentsToAdd.map(student => ({
+          name: student.name.trim(),
+          classroom_id: classroomId,
+          photo_url: student.imageUrl || null
+        }))
+
+        const { error: insertError } = await supabase
+          .from('students')
+          .insert(newStudentsData)
+
+        if (insertError) {
+          console.error('Error adding students:', insertError)
+          alert("학생 추가 중 오류가 발생했습니다.")
+          return
+        }
+      }
+
+      // 6. 수정 처리
+      if (studentsToUpdate.length > 0) {
+        for (const student of studentsToUpdate) {
+          const { error: updateError } = await supabase
+            .from('students')
+            .update({
+              name: student.name.trim(),
+              photo_url: student.imageUrl || null
+            })
+            .eq('id', student.student_id)
+
+          if (updateError) {
+            console.error('Error updating student:', updateError)
+            alert(`학생 ${student.name} 수정 중 오류가 발생했습니다.`)
+            return
+          }
+        }
+      }
+
+      // 7. 성공 시 데이터 새로고침
+      await loadClassroomData(teacherName)
+      alert("학급 정보가 성공적으로 수정되었습니다.")
+
+    } catch (error) {
+      console.error('Error updating classroom:', error)
+      alert("수정 중 오류가 발생했습니다.")
     }
   }
 
