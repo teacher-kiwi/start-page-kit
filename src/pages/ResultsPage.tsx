@@ -32,11 +32,20 @@ interface StudentResult {
   responses: Response[]
 }
 
+interface Classroom {
+  id: string
+  school_name: string
+  grade: number
+  class_number: number
+  teacher_name: string
+}
+
 const ResultsPage = () => {
   const [students, setStudents] = useState<Student[]>([])
   const [questions, setQuestions] = useState<Question[]>([])
   const [results, setResults] = useState<StudentResult[]>([])
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
+  const [classroom, setClassroom] = useState<Classroom | null>(null)
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
 
@@ -55,23 +64,25 @@ const ResultsPage = () => {
       setLoading(true)
 
       // 선생님의 학급 찾기
-      const { data: classroom, error: classroomError } = await supabase
+      const { data: classroomData, error: classroomError } = await supabase
         .from('classrooms')
-        .select('id')
+        .select('*')
         .eq('teacher_name', teacherName)
         .single()
 
-      if (classroomError || !classroom) {
+      if (classroomError || !classroomData) {
         console.error('Classroom not found:', classroomError)
         alert('학급 정보를 찾을 수 없습니다.')
         return
       }
 
+      setClassroom(classroomData)
+
       // 학급의 학생들 가져오기
       const { data: studentsData, error: studentsError } = await supabase
         .from('students')
         .select('*')
-        .eq('classroom_id', classroom.id)
+        .eq('classroom_id', classroomData.id)
         .order('student_number', { ascending: true })
 
       if (studentsError) {
@@ -208,8 +219,8 @@ const ResultsPage = () => {
                         )}
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500">포탬초등학교</p>
-                        <p className="text-xs text-gray-500">1학년 4반</p>
+                        <p className="text-xs text-gray-500">{classroom?.school_name}</p>
+                        <p className="text-xs text-gray-500">{classroom?.grade}학년 {classroom?.class_number}반</p>
                         <p className="font-semibold text-sm">
                           {student.student_number || index + 1}번 {student.name}
                         </p>
@@ -253,8 +264,8 @@ const ResultsPage = () => {
                               )}
                             </div>
                             <div>
-                              <p className="text-xs text-gray-500">포탬초등학교</p>
-                              <p className="text-xs text-gray-500">1학년 4반</p>
+                              <p className="text-xs text-gray-500">{classroom?.school_name}</p>
+                              <p className="text-xs text-gray-500">{classroom?.grade}학년 {classroom?.class_number}반</p>
                               <p className="font-semibold">
                                 {response.target_student.student_number}번 {response.target_student.name}
                               </p>
