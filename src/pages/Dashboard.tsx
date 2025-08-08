@@ -4,11 +4,28 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { KoreanInput } from "@/components/ui/korean-input"
 import { Trash2, Plus, Upload } from "lucide-react"
+import { supabase } from "@/lib/supabase"
 
 interface StudentInput {
   id: string
   name: string
   image: File | null
+  student_id?: string
+}
+
+interface Classroom {
+  id: string
+  teacher_name: string
+  school: string
+  grade: string
+  class_number: string
+}
+
+interface Student {
+  id: string
+  name: string
+  classroom_id: string
+  image_url?: string
 }
 
 const Dashboard = () => {
@@ -17,6 +34,8 @@ const Dashboard = () => {
   const [grade, setGrade] = useState<string>("")
   const [classNumber, setClassNumber] = useState<string>("")
   const [studentInputs, setStudentInputs] = useState<StudentInput[]>([])
+  const [classroomId, setClassroomId] = useState<string>("")
+  const [loading, setLoading] = useState<boolean>(true)
   const navigate = useNavigate()
 
   const addStudentInput = () => {
@@ -28,6 +47,52 @@ const Dashboard = () => {
     setStudentInputs([...studentInputs, newStudentInput])
   }
 
+  const loadClassroomData = async (teacherName: string) => {
+    try {
+      // classrooms 테이블에서 선생님 이름으로 조회
+      const { data: classroom, error: classroomError } = await supabase
+        .from('classrooms')
+        .select('*')
+        .eq('teacher_name', teacherName)
+        .single()
+
+      if (classroomError || !classroom) {
+        console.log('No classroom found for teacher:', teacherName)
+        setLoading(false)
+        return
+      }
+
+      // 클래스룸 정보로 폼 채우기
+      setClassroomId(classroom.id)
+      setSchool(classroom.school || '')
+      setGrade(classroom.grade || '')
+      setClassNumber(classroom.class_number || '')
+
+      // students 테이블에서 해당 클래스룸의 학생들 조회
+      const { data: students, error: studentsError } = await supabase
+        .from('students')
+        .select('*')
+        .eq('classroom_id', classroom.id)
+
+      if (studentsError) {
+        console.error('Error loading students:', studentsError)
+      } else if (students) {
+        // 학생 데이터를 폼 형식으로 변환
+        const studentInputsData = students.map((student, index) => ({
+          id: `student-${student.id}`,
+          name: student.name,
+          image: null, // 이미지는 파일 객체가 아니므로 null로 설정
+          student_id: student.id
+        }))
+        setStudentInputs(studentInputsData)
+      }
+    } catch (error) {
+      console.error('Error loading classroom data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
     const storedTeacherName = localStorage.getItem("teacher_name")
     if (!storedTeacherName) {
@@ -35,6 +100,7 @@ const Dashboard = () => {
       return
     }
     setTeacherName(storedTeacherName)
+    loadClassroomData(storedTeacherName)
   }, [navigate])
 
   const handleLogout = () => {
@@ -67,8 +133,15 @@ const Dashboard = () => {
     }
   }
 
-  if (!teacherName) {
-    return null
+  if (!teacherName || loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">데이터를 불러오는 중...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
