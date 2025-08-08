@@ -14,6 +14,8 @@ export const LoginForm = () => {
     if (userId.trim()) {
       // 아이디를 teacher_name으로 로컬스토리지에 저장
       localStorage.setItem("teacher_name", userId.trim());
+      console.log("User logged in as:", userId.trim());
+      console.log("Navigating to dashboard...");
 
       // 다음 페이지로 이동
       navigate("/dashboard");
