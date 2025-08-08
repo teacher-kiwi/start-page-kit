@@ -129,12 +129,62 @@ const Dashboard = () => {
     ))
   }
 
-  const handleSaveClassroom = () => {
-    if (school && grade && classNumber) {
-      alert("학급 정보가 저장되었습니다.")
-      // 여기에 실제 저장 로직 추가 예정
-    } else {
+  const handleSaveClassroom = async () => {
+    if (!school || !grade || !classNumber) {
       alert("모든 정보를 입력해주세요.")
+      return
+    }
+
+    try {
+      // 1. classrooms 테이블에 학급 정보 저장
+      const { data: classroom, error: classroomError } = await supabase
+        .from('classrooms')
+        .insert({
+          teacher_name: teacherName,
+          school_name: school,
+          grade: parseInt(grade),
+          class_number: parseInt(classNumber)
+        })
+        .select()
+        .single()
+
+      if (classroomError) {
+        console.error('Error creating classroom:', classroomError)
+        alert("학급 정보 저장 중 오류가 발생했습니다.")
+        return
+      }
+
+      // 2. students 테이블에 학생 정보 저장
+      if (studentInputs.length > 0) {
+        const studentsData = studentInputs
+          .filter(student => student.name.trim()) // 이름이 있는 학생만
+          .map(student => ({
+            name: student.name.trim(),
+            classroom_id: classroom.id
+            // photo_url은 나중에 이미지 업로드 구현 시 추가
+          }))
+
+        if (studentsData.length > 0) {
+          const { error: studentsError } = await supabase
+            .from('students')
+            .insert(studentsData)
+
+          if (studentsError) {
+            console.error('Error creating students:', studentsError)
+            alert("학생 정보 저장 중 오류가 발생했습니다.")
+            return
+          }
+        }
+      }
+
+      // 3. 성공 시 상태 업데이트
+      setClassroomId(classroom.id)
+      setHasExistingClassroom(true)
+      alert("학급 정보가 저장되었습니다.")
+
+    } catch (error) {
+      console.error('Error saving classroom:', error)
+      alert("저장 중 오류가 발생했습니다.")
     }
   }
 
