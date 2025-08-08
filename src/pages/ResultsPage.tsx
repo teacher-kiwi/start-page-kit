@@ -278,10 +278,10 @@ const ResultsPage = () => {
                     )
                   })}
 
-                  {/* 보완 버튼 */}
+                  {/* 학부모 상담 내용 AI 생성 버튼 */}
                   <div className="pt-4">
                     <Button variant="outline" className="mb-4">
-                      보완
+                      학부모 상담 내용 AI 생성
                     </Button>
                     
                     {/* 학부모 상담용 추천 내용 */}
