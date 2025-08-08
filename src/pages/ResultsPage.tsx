@@ -287,14 +287,8 @@ const ResultsPage = () => {
                     {/* 학부모 상담용 추천 내용 */}
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <h4 className="font-semibold mb-2">학부모 상담용 추천 내용</h4>
-                      <p className="text-sm text-gray-700 leading-relaxed mb-3">
-                        {selectedStudent?.name}은 친구들과의 관계에서 긍정적인 모습을 보이고 있습니다. 
-                        친구들로부터 많은 지지를 받고 있으며, 의사소통 능력이 뛰어납니다.
-                      </p>
-                      
-                      <p className="text-sm text-gray-700 leading-relaxed">
-                        앞으로도 지속적인 사회성 발달을 위해 다양한 활동에 참여하고, 
-                        친구들과의 협력을 통해 더욱 성장할 수 있도록 격려해 주시기 바랍니다.
+                      <p className="text-sm text-gray-500 text-center py-4">
+                        위의 "학부모 상담 내용 AI 생성" 버튼을 눌러서 개인별 맞춤 상담 내용을 생성해보세요.
                       </p>
                     </div>
                   </div>
