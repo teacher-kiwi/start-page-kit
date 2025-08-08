@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
@@ -35,6 +36,7 @@ const Dashboard = () => {
   const [classNumber, setClassNumber] = useState<string>("")
   const [studentInputs, setStudentInputs] = useState<StudentInput[]>([])
   const [classroomId, setClassroomId] = useState<string>("")
+  const [hasExistingClassroom, setHasExistingClassroom] = useState<boolean>(false)
   const [loading, setLoading] = useState<boolean>(true)
   const navigate = useNavigate()
 
@@ -58,15 +60,17 @@ const Dashboard = () => {
 
       if (classroomError || !classroom) {
         console.log('No classroom found for teacher:', teacherName)
+        setHasExistingClassroom(false)
         setLoading(false)
         return
       }
 
-      // 클래스룸 정보로 폼 채우기
+      // 기존 클래스룸이 있는 경우
+      setHasExistingClassroom(true)
       setClassroomId(classroom.id)
-      setSchool(classroom.school || '')
-      setGrade(classroom.grade || '')
-      setClassNumber(classroom.class_number || '')
+      setSchool(classroom.school_name || '')
+      setGrade(classroom.grade?.toString() || '')
+      setClassNumber(classroom.class_number?.toString() || '')
 
       // students 테이블에서 해당 클래스룸의 학생들 조회
       const { data: students, error: studentsError } = await supabase
@@ -88,6 +92,7 @@ const Dashboard = () => {
       }
     } catch (error) {
       console.error('Error loading classroom data:', error)
+      setHasExistingClassroom(false)
     } finally {
       setLoading(false)
     }
@@ -124,10 +129,28 @@ const Dashboard = () => {
     ))
   }
 
-  const handleCreateClass = () => {
+  const handleSaveClassroom = () => {
     if (school && grade && classNumber) {
-      alert("점문지와 함께 QR코드가 생성됩니다.")
-      // 여기에 실제 클래스 생성 로직 추가
+      alert("학급 정보가 저장되었습니다.")
+      // 여기에 실제 저장 로직 추가 예정
+    } else {
+      alert("모든 정보를 입력해주세요.")
+    }
+  }
+
+  const handleUpdateClassroom = () => {
+    if (school && grade && classNumber) {
+      alert("학급 정보가 수정되었습니다.")
+      // 여기에 실제 수정 로직 추가 예정
+    } else {
+      alert("모든 정보를 입력해주세요.")
+    }
+  }
+
+  const handleCreateSurvey = () => {
+    if (school && grade && classNumber) {
+      alert("설문지와 함께 QR코드가 생성됩니다.")
+      // 여기에 실제 설문지 생성 로직 추가
     } else {
       alert("모든 정보를 입력해주세요.")
     }
@@ -280,10 +303,30 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* 설문지 생성 버튼 */}
+          {/* 버튼 섹션 */}
           <div className="space-y-4 pt-4">
+            {/* 학급 정보 저장/수정 버튼 */}
+            {hasExistingClassroom ? (
+              <Button 
+                onClick={handleUpdateClassroom}
+                variant="outline" 
+                className="w-full h-12"
+              >
+                학급 정보 수정하기
+              </Button>
+            ) : (
+              <Button 
+                onClick={handleSaveClassroom}
+                variant="outline" 
+                className="w-full h-12"
+              >
+                학급 정보 저장하기
+              </Button>
+            )}
+            
+            {/* 설문지 생성 버튼 */}
             <Button 
-              onClick={handleCreateClass}
+              onClick={handleCreateSurvey}
               variant="korean" 
               className="w-full h-12"
             >
