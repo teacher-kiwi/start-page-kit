@@ -11,6 +11,7 @@ interface StudentInput {
   id: string
   name: string
   image: File | null
+  imageUrl?: string
   student_id?: string
 }
 
@@ -86,6 +87,7 @@ const Dashboard = () => {
           id: `student-${student.id}`,
           name: student.name,
           image: null, // 이미지는 파일 객체가 아니므로 null로 설정
+          imageUrl: student.photo_url || undefined, // 기존 이미지 URL
           student_id: student.id
         }))
         setStudentInputs(studentInputsData)
@@ -123,10 +125,42 @@ const Dashboard = () => {
     ))
   }
 
-  const updateStudentImage = (id: string, file: File | null) => {
-    setStudentInputs(studentInputs.map(input => 
-      input.id === id ? { ...input, image: file } : input
-    ))
+  const updateStudentImage = async (id: string, file: File | null) => {
+    if (file) {
+      try {
+        // 파일 이름을 고유하게 만들기
+        const fileExt = file.name.split('.').pop()
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`
+        
+        // Supabase Storage에 업로드
+        const { data, error } = await supabase.storage
+          .from('images')
+          .upload(fileName, file)
+
+        if (error) {
+          console.error('Error uploading image:', error)
+          alert('이미지 업로드 중 오류가 발생했습니다.')
+          return
+        }
+
+        // 업로드된 이미지의 public URL 생성
+        const { data: { publicUrl } } = supabase.storage
+          .from('images')
+          .getPublicUrl(fileName)
+
+        // studentInputs 상태 업데이트 (URL과 파일 모두 저장)
+        setStudentInputs(studentInputs.map(input => 
+          input.id === id ? { ...input, image: file, imageUrl: publicUrl } : input
+        ))
+      } catch (error) {
+        console.error('Error handling image upload:', error)
+        alert('이미지 처리 중 오류가 발생했습니다.')
+      }
+    } else {
+      setStudentInputs(studentInputs.map(input => 
+        input.id === id ? { ...input, image: null, imageUrl: undefined } : input
+      ))
+    }
   }
 
   const handleSaveClassroom = async () => {
@@ -160,8 +194,8 @@ const Dashboard = () => {
           .filter(student => student.name.trim()) // 이름이 있는 학생만
           .map(student => ({
             name: student.name.trim(),
-            classroom_id: classroom.id
-            // photo_url은 나중에 이미지 업로드 구현 시 추가
+            classroom_id: classroom.id,
+            photo_url: student.imageUrl || null // 업로드된 이미지 URL
           }))
 
         if (studentsData.length > 0) {
@@ -325,6 +359,17 @@ const Dashboard = () => {
                             {studentInput.image.name}
                           </span>
                         </div>
+                      ) : studentInput.imageUrl ? (
+                        <div className="flex items-center gap-2 p-3 border border-border rounded-xl bg-input">
+                          <img 
+                            src={studentInput.imageUrl} 
+                            alt="Student"
+                            className="w-8 h-8 rounded-full object-cover"
+                          />
+                          <span className="text-sm text-foreground truncate">
+                            기존 이미지
+                          </span>
+                        </div>
                       ) : (
                         <div className="flex items-center gap-2 p-3 border border-border rounded-xl bg-input hover:bg-accent transition-colors">
                           <Upload className="h-4 w-4 text-muted-foreground" />
@@ -332,7 +377,7 @@ const Dashboard = () => {
                             사진을 선택하세요
                           </span>
                         </div>
-                      )}
+                        )}
                     </div>
                   </div>
                   
