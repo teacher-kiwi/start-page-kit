@@ -45,6 +45,17 @@ const QRCodePage = () => {
     navigate("/dashboard")
   }
 
+  const handleQRCodeClick = () => {
+    // 현재 URL 파라미터를 그대로 전달하여 설문 페이지로 이동
+    const params = new URLSearchParams({
+      school: school!,
+      grade: grade!,
+      class: classNumber!,
+      teacher: teacherName!
+    })
+    navigate(`/survey?${params.toString()}`)
+  }
+
   if (!school || !grade || !classNumber || !teacherName) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -86,7 +97,10 @@ const QRCodePage = () => {
             {/* QR코드 */}
             <div className="flex justify-center">
               {qrCodeUrl ? (
-                <div className="p-6 bg-white rounded-xl shadow-sm border">
+                <div 
+                  className="p-6 bg-white rounded-xl shadow-sm border cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={handleQRCodeClick}
+                >
                   <img 
                     src={qrCodeUrl} 
                     alt="설문지 QR코드" 
@@ -112,6 +126,7 @@ const QRCodePage = () => {
                   <li>설문지 페이지가 자동으로 열립니다</li>
                   <li>학생들이 자신의 이름을 선택하여 설문에 참여합니다</li>
                 </ol>
+                <p className="text-xs text-primary mt-2">💡 시연용: QR코드를 클릭해서 학생 페이지를 확인해보세요!</p>
               </div>
             </div>
 
