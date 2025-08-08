@@ -2,6 +2,8 @@ import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { supabase } from "@/integrations/supabase/client"
 import { ArrowLeft } from "lucide-react"
 
@@ -47,6 +49,7 @@ const ResultsPage = () => {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null)
   const [classroom, setClassroom] = useState<Classroom | null>(null)
   const [loading, setLoading] = useState(true)
+  const [webhookUrl, setWebhookUrl] = useState('https://leejs05.app.n8n.cloud/webhook-test/bc771d4c-001d-460b-a281-3685aef829a0')
   const navigate = useNavigate()
 
   const teacherName = localStorage.getItem("teacher_name")
@@ -184,7 +187,7 @@ const ResultsPage = () => {
         }))
       }
 
-      const response = await fetch('https://leejs05.app.n8n.cloud/webhook-test/bc771d4c-001d-460b-a281-3685aef829a0', {
+      const response = await fetch(webhookUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -326,6 +329,21 @@ const ResultsPage = () => {
                       </div>
                     )
                   })}
+
+                  {/* Webhook URL 설정 */}
+                  <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                    <Label htmlFor="webhook-url" className="text-sm font-medium text-gray-700 mb-2 block">
+                      AI 생성 요청 URL (테스트용)
+                    </Label>
+                    <Input
+                      id="webhook-url"
+                      type="url"
+                      value={webhookUrl}
+                      onChange={(e) => setWebhookUrl(e.target.value)}
+                      className="w-full"
+                      placeholder="Webhook URL을 입력하세요"
+                    />
+                  </div>
 
                   {/* 학부모 상담 내용 AI 생성 버튼 */}
                   <div className="pt-4">
