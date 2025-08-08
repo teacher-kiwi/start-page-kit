@@ -3,25 +3,30 @@ import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { KoreanInput } from "@/components/ui/korean-input"
-import { Badge } from "@/components/ui/badge"
-import { Trash2, Plus } from "lucide-react"
+import { Trash2, Plus, Upload } from "lucide-react"
 
-interface Student {
+interface StudentInput {
   id: string
   name: string
+  image: File | null
 }
 
 const Dashboard = () => {
   const [teacherName, setTeacherName] = useState<string>("")
   const [school, setSchool] = useState<string>("")
-  const [selectedGrade, setSelectedGrade] = useState<string>("")
-  const [selectedClass, setSelectedClass] = useState<string>("")
-  const [students, setStudents] = useState<Student[]>([])
-  const [newStudentName, setNewStudentName] = useState<string>("")
+  const [grade, setGrade] = useState<string>("")
+  const [classNumber, setClassNumber] = useState<string>("")
+  const [studentInputs, setStudentInputs] = useState<StudentInput[]>([])
   const navigate = useNavigate()
 
-  const grades = ["1학년", "2학년", "3학년", "4학년", "5학년", "6학년"]
-  const classes = ["1반", "2반", "3반", "4반", "5반", "6반"]
+  const addStudentInput = () => {
+    const newStudentInput: StudentInput = {
+      id: Date.now().toString(),
+      name: "",
+      image: null
+    }
+    setStudentInputs([...studentInputs, newStudentInput])
+  }
 
   useEffect(() => {
     const storedTeacherName = localStorage.getItem("teacher_name")
@@ -37,23 +42,24 @@ const Dashboard = () => {
     navigate("/")
   }
 
-  const addStudent = () => {
-    if (newStudentName.trim()) {
-      const newStudent: Student = {
-        id: Date.now().toString(),
-        name: newStudentName.trim()
-      }
-      setStudents([...students, newStudent])
-      setNewStudentName("")
-    }
+  const removeStudentInput = (id: string) => {
+    setStudentInputs(studentInputs.filter(input => input.id !== id))
   }
 
-  const removeStudent = (id: string) => {
-    setStudents(students.filter(student => student.id !== id))
+  const updateStudentName = (id: string, name: string) => {
+    setStudentInputs(studentInputs.map(input => 
+      input.id === id ? { ...input, name } : input
+    ))
+  }
+
+  const updateStudentImage = (id: string, file: File | null) => {
+    setStudentInputs(studentInputs.map(input => 
+      input.id === id ? { ...input, image: file } : input
+    ))
   }
 
   const handleCreateClass = () => {
-    if (school && selectedGrade && selectedClass) {
+    if (school && grade && classNumber) {
       alert("점문지와 함께 QR코드가 생성됩니다.")
       // 여기에 실제 클래스 생성 로직 추가
     } else {
@@ -99,90 +105,99 @@ const Dashboard = () => {
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-foreground">학급</h2>
             
-            {/* 학년 선택 */}
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">학년</p>
-              <div className="grid grid-cols-3 gap-2">
-                {grades.map((grade) => (
-                  <Button
-                    key={grade}
-                    variant={selectedGrade === grade ? "korean" : "outline"}
-                    size="sm"
-                    onClick={() => setSelectedGrade(grade)}
-                    className="h-10"
-                  >
-                    {grade}
-                  </Button>
-                ))}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm text-muted-foreground">학년</label>
+                <KoreanInput
+                  type="text"
+                  placeholder="1"
+                  value={grade}
+                  onChange={(e) => setGrade(e.target.value)}
+                />
               </div>
-            </div>
-
-            {/* 반 선택 */}
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">반</p>
-              <div className="grid grid-cols-3 gap-2">
-                {classes.map((classNum) => (
-                  <Button
-                    key={classNum}
-                    variant={selectedClass === classNum ? "korean" : "outline"}
-                    size="sm"
-                    onClick={() => setSelectedClass(classNum)}
-                    className="h-10"
-                  >
-                    {classNum}
-                  </Button>
-                ))}
+              <div className="space-y-2">
+                <label className="text-sm text-muted-foreground">반</label>
+                <KoreanInput
+                  type="text"
+                  placeholder="1"
+                  value={classNumber}
+                  onChange={(e) => setClassNumber(e.target.value)}
+                />
               </div>
             </div>
           </div>
 
           {/* 학생 정보 입력 */}
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-foreground">학생 정보</h2>
-            
-            {/* 학생 추가 */}
-            <div className="flex gap-2">
-              <KoreanInput
-                type="text"
-                placeholder="학생 이름을 입력하세요"
-                value={newStudentName}
-                onChange={(e) => setNewStudentName(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && addStudent()}
-                className="flex-1"
-              />
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-foreground">학생 정보</h2>
               <Button 
-                onClick={addStudent}
+                onClick={addStudentInput}
                 variant="outline"
                 size="sm"
-                className="px-3"
+                className="flex items-center gap-2"
               >
                 <Plus className="h-4 w-4" />
+                학생 추가
               </Button>
             </div>
-
-            {/* 학생 목록 */}
-            {students.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">등록된 학생 ({students.length}명)</p>
-                <div className="flex flex-wrap gap-2">
-                  {students.map((student) => (
-                    <Badge
-                      key={student.id}
-                      variant="secondary"
-                      className="flex items-center gap-2 px-3 py-1"
+            
+            {/* 학생 입력 목록 */}
+            <div className="space-y-4">
+              {studentInputs.map((studentInput, index) => (
+                <div key={studentInput.id} className="border border-border rounded-lg p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-foreground">
+                      학생 {index + 1}
+                    </span>
+                    <button
+                      onClick={() => removeStudentInput(studentInput.id)}
+                      className="text-muted-foreground hover:text-destructive"
                     >
-                      {student.name}
-                      <button
-                        onClick={() => removeStudent(student.id)}
-                        className="hover:text-destructive"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {/* 학생 이름 입력 */}
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground">이름</label>
+                      <KoreanInput
+                        type="text"
+                        placeholder="학생 이름을 입력하세요"
+                        value={studentInput.name}
+                        onChange={(e) => updateStudentName(studentInput.id, e.target.value)}
+                      />
+                    </div>
+                    
+                    {/* 학생 이미지 업로드 */}
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground">사진</label>
+                      <div className="relative">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => updateStudentImage(studentInput.id, e.target.files?.[0] || null)}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        />
+                        <div className="flex items-center gap-2 p-3 border border-border rounded-xl bg-input hover:bg-accent transition-colors">
+                          <Upload className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">
+                            {studentInput.image ? studentInput.image.name : "사진을 선택하세요"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
+              ))}
+              
+              {studentInputs.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p className="text-sm">학생 추가 버튼을 눌러 학생을 등록하세요</p>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* 완전지 생성 버튼 */}
