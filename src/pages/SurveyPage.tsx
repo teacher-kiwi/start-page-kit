@@ -74,9 +74,18 @@ const SurveyPage = () => {
   }
 
   const handleStudentSelect = (student: Student) => {
-    // 해커톤 시연용 - 학생 선택 시 다음 단계로 이동
-    alert(`${student.name}님이 선택되었습니다!`)
-    // 실제로는 설문 페이지나 다음 단계로 이동
+    // 로컬스토리지에 학생 ID 저장
+    localStorage.setItem('selected_student_id', student.id)
+    
+    // 학생 확인 페이지로 이동
+    const params = new URLSearchParams({
+      school: school!,
+      grade: grade!,
+      class: classNumber!,
+      teacher: teacherName!,
+      studentId: student.id
+    })
+    navigate(`/student-confirm?${params.toString()}`)
   }
 
   if (loading) {
