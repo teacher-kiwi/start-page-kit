@@ -75,9 +75,8 @@ const StudentConfirmPage = () => {
   }
 
   const handleStart = () => {
-    // 설문 시작 - 다음 페이지로 이동
-    alert('설문이 시작됩니다!')
-    // 실제 설문 페이지로 이동하는 로직 추가
+    // 설문 페이지로 이동
+    navigate('/survey-questions')
   }
 
   if (loading) {
