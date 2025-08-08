@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { KoreanInput } from "@/components/ui/korean-input"
 import { Trash2, Plus, Upload } from "lucide-react"
-import { supabase } from "@/lib/supabase"
+import { supabase } from "@/integrations/supabase/client"
 
 interface StudentInput {
   id: string
