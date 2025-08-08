@@ -50,6 +50,8 @@ const ResultsPage = () => {
   const [classroom, setClassroom] = useState<Classroom | null>(null)
   const [loading, setLoading] = useState(true)
   const [webhookUrl, setWebhookUrl] = useState('https://leejs05.app.n8n.cloud/webhook-test/bc771d4c-001d-460b-a281-3685aef829a0')
+  const [aiResponse, setAiResponse] = useState<string>('')
+  const [isGenerating, setIsGenerating] = useState(false)
   const navigate = useNavigate()
 
   const teacherName = localStorage.getItem("teacher_name")
@@ -164,6 +166,9 @@ const ResultsPage = () => {
     }
 
     try {
+      setIsGenerating(true)
+      setAiResponse('')
+      
       const responseData = {
         student: {
           id: selectedStudent.id,
@@ -196,6 +201,8 @@ const ResultsPage = () => {
       })
 
       if (response.ok) {
+        const responseText = await response.text()
+        setAiResponse(responseText)
         alert('AI 상담 내용이 성공적으로 생성되었습니다.')
       } else {
         throw new Error('서버 응답 오류')
@@ -203,6 +210,8 @@ const ResultsPage = () => {
     } catch (error) {
       console.error('AI 생성 오류:', error)
       alert('AI 상담 내용 생성 중 오류가 발생했습니다.')
+    } finally {
+      setIsGenerating(false)
     }
   }
 
@@ -347,16 +356,27 @@ const ResultsPage = () => {
 
                   {/* 학부모 상담 내용 AI 생성 버튼 */}
                   <div className="pt-4">
-                    <Button variant="outline" className="mb-4" onClick={generateAIContent}>
-                      학부모 상담 내용 AI 생성
+                    <Button 
+                      variant="outline" 
+                      className="mb-4" 
+                      onClick={generateAIContent}
+                      disabled={isGenerating}
+                    >
+                      {isGenerating ? '생성 중...' : '학부모 상담 내용 AI 생성'}
                     </Button>
                     
                     {/* 학부모 상담용 추천 내용 */}
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <h4 className="font-semibold mb-2">학부모 상담용 추천 내용</h4>
-                      <p className="text-sm text-gray-500 text-center py-4">
-                        위의 "학부모 상담 내용 AI 생성" 버튼을 눌러서 개인별 맞춤 상담 내용을 생성해보세요.
-                      </p>
+                      {aiResponse ? (
+                        <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                          {aiResponse}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500 text-center py-4">
+                          위의 "학부모 상담 내용 AI 생성" 버튼을 눌러서 개인별 맞춤 상담 내용을 생성해보세요.
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
