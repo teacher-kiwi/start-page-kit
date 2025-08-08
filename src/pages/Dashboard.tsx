@@ -566,6 +566,16 @@ const Dashboard = () => {
             >
               설문지 생성하기
             </Button>
+            
+            {/* 결과 보기 버튼 */}
+            <Button 
+              onClick={() => navigate('/results')}
+              variant="outline" 
+              className="w-full h-12"
+            >
+              설문 결과 보기
+            </Button>
+            
             <p className="text-center text-sm text-muted-foreground">
               설문지와 함께 QR코드가 생성됩니다.
             </p>

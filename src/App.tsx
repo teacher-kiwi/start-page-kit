@@ -9,6 +9,7 @@ import QRCodePage from "./pages/QRCodePage";
 import SurveyPage from "./pages/SurveyPage";
 import StudentConfirmPage from "./pages/StudentConfirmPage";
 import SurveyQuestionsPage from "./pages/SurveyQuestionsPage";
+import ResultsPage from "./pages/ResultsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/survey" element={<SurveyPage />} />
           <Route path="/student-confirm" element={<StudentConfirmPage />} />
           <Route path="/survey-questions" element={<SurveyQuestionsPage />} />
+          <Route path="/results" element={<ResultsPage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
