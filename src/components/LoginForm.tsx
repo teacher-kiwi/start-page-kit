@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { KoreanInput } from "@/components/ui/korean-input";
 import { Card } from "@/components/ui/card";
 import { User, Lock } from "lucide-react";
-import cloudMascot from "@/assets/cloud-mascot.png";
+
 export const LoginForm = () => {
   const navigate = useNavigate();
   const [userId, setUserId] = useState("");
@@ -30,7 +30,7 @@ export const LoginForm = () => {
 
         {/* Mascot */}
         <div className="flex justify-center mb-8">
-          <img src={cloudMascot} alt="Cloud Mascot" className="w-24 h-24 object-contain" />
+          <img src="/lovable-uploads/5b1b0384-19e2-45bb-9743-a9664c34f560.png" alt="우리끼리 속마음 마스코트" className="w-24 h-24 object-contain" />
         </div>
 
         {/* Login Form */}
