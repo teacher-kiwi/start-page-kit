@@ -110,9 +110,10 @@ const Dashboard = () => {
     loadClassroomData(storedTeacherName)
   }, [navigate])
 
-  const handleLogout = () => {
-    localStorage.removeItem("teacher_name")
-    navigate("/")
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    localStorage.removeItem("teacher_name");
+    navigate("/");
   }
 
   const removeStudentInput = (id: string) => {

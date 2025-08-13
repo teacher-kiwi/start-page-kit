@@ -1,27 +1,59 @@
-import { useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { KoreanInput } from "@/components/ui/korean-input";
 import { Card } from "@/components/ui/card";
-import { User, Lock } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 export const LoginForm = () => {
   const navigate = useNavigate();
-  const [userId, setUserId] = useState("");
-  const [password, setPassword] = useState("");
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (userId.trim()) {
-      // 아이디를 teacher_name으로 로컬스토리지에 저장
-      localStorage.setItem("teacher_name", userId.trim());
-      console.log("User logged in as:", userId.trim());
-      console.log("Navigating to dashboard...");
 
-      // 다음 페이지로 이동
-      navigate("/dashboard");
+  // 세션 변화 감지 및 자동 리다이렉트
+  useEffect(() => {
+    const setTeacherNameFromSession = (session: any) => {
+      const meta = session?.user?.user_metadata || {};
+      const candidate =
+        meta.name ||
+        meta.full_name ||
+        meta.preferred_username ||
+        (session?.user?.email ? session.user.email.split("@")[0] : "");
+      if (candidate) {
+        localStorage.setItem("teacher_name", candidate);
+      }
+    };
+
+    // 1) 우선 리스너 등록
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        setTeacherNameFromSession(session);
+        navigate("/dashboard", { replace: true });
+      }
+    });
+
+    // 2) 기존 세션 확인
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setTeacherNameFromSession(session);
+        navigate("/dashboard", { replace: true });
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  const handleGoogleLogin = async () => {
+    const redirectTo = `${window.location.origin}/`;
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo }
+    });
+    if (error) {
+      console.error("Google 로그인 오류:", error.message);
+      alert("구글 로그인 중 오류가 발생했습니다.");
     }
   };
-  return <div className="min-h-screen flex items-center justify-center bg-background p-4">
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-8">
         {/* Service Title */}
         <div className="text-center">
@@ -30,33 +62,26 @@ export const LoginForm = () => {
 
         {/* Mascot */}
         <div className="flex justify-center mb-8">
-          <img src="/lovable-uploads/5b1b0384-19e2-45bb-9743-a9664c34f560.png" alt="우리끼리 속마음 마스코트" className="w-24 h-24 object-contain" />
+          <img
+            src="/lovable-uploads/5b1b0384-19e2-45bb-9743-a9664c34f560.png"
+            alt="우리끼리 속마음 마스코트"
+            className="w-24 h-24 object-contain"
+            loading="lazy"
+          />
         </div>
 
-        {/* Login Form */}
+        {/* Google Login Only */}
         <Card className="p-8 shadow-lg border-0">
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-4">
-              <KoreanInput type="text" placeholder="아이디" value={userId} onChange={e => setUserId(e.target.value)} icon={<User className="h-4 w-4" />} required />
-              
-              <KoreanInput type="password" placeholder="비밀번호" value={password} onChange={e => setPassword(e.target.value)} icon={<Lock className="h-4 w-4" />} required />
-            </div>
-
-            <Button type="submit" variant="korean" className="w-full">
-              로그인
+          <div className="space-y-4">
+            <Button type="button" variant="korean" className="w-full" onClick={handleGoogleLogin}>
+              Google로 계속하기
             </Button>
-          </form>
-
-          {/* Sign up link */}
-          <div className="text-center mt-6">
-            <p className="text-sm text-muted-foreground">
-              계정이 없으신가요?{" "}
-              <button type="button" className="text-primary hover:underline font-medium" onClick={() => console.log("Navigate to signup")}>
-                회원가입
-              </button>
-            </p>
+          </div>
+          <div className="text-center mt-6 text-sm text-muted-foreground">
+            구글 계정으로만 로그인할 수 있어요.
           </div>
         </Card>
       </div>
-    </div>;
+    </div>
+  );
 };
