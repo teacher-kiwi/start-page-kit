@@ -126,7 +126,7 @@ const QRCodePage = () => {
                   <li>설문지 페이지가 자동으로 열립니다</li>
                   <li>학생들이 자신의 이름을 선택하여 설문에 참여합니다</li>
                 </ol>
-                <p className="text-xs text-primary mt-2">💡 시연용: QR코드를 클릭해서 학생 페이지를 확인해보세요!</p>
+                
               </div>
             </div>
 
