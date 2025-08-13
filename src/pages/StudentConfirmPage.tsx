@@ -81,7 +81,7 @@ const StudentConfirmPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-orange-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
           <p className="text-muted-foreground">학생 정보를 불러오는 중...</p>
@@ -92,7 +92,7 @@ const StudentConfirmPage = () => {
 
   if (!student) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-orange-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="p-8 text-center">
           <p className="text-lg text-muted-foreground mb-4">학생 정보를 찾을 수 없습니다.</p>
           <Button onClick={handleGoBack}>
@@ -104,7 +104,7 @@ const StudentConfirmPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-orange-50">
+    <div className="min-h-screen bg-background">
       {/* 상단 돌아가기 버튼 */}
       <div className="absolute top-6 left-6">
         <Button 

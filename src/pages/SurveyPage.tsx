@@ -90,7 +90,7 @@ const SurveyPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-orange-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
           <p className="text-muted-foreground">학생 정보를 불러오는 중...</p>
@@ -101,7 +101,7 @@ const SurveyPage = () => {
 
   if (students.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-orange-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="p-8 text-center">
           <p className="text-lg text-muted-foreground mb-4">등록된 학생이 없습니다.</p>
           <Button onClick={() => navigate("/dashboard")}>
@@ -113,7 +113,7 @@ const SurveyPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-orange-50 p-4">
+    <div className="min-h-screen bg-background p-4">
       <div className="max-w-6xl mx-auto">
         {/* 헤더 */}
         <div className="text-center mb-8">

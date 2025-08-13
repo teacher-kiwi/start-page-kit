@@ -21,7 +21,7 @@ export const LoginForm = () => {
       navigate("/dashboard");
     }
   };
-  return <div className="min-h-screen flex items-center justify-center bg-login p-4">
+  return <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-8">
         {/* Service Title */}
         <div className="text-center">
