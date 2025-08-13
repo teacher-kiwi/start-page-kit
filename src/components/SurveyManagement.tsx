@@ -2,7 +2,8 @@ import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Plus, BarChart3, TrendingUp } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Plus, BarChart3, TrendingUp, QrCode } from "lucide-react"
 
 interface SurveyManagementProps {
   school: string
@@ -22,21 +23,7 @@ export const SurveyManagement = ({
     { id: "1", name: "1차 설문", date: "2024-01-15" },
     { id: "2", name: "2차 설문", date: "2024-02-15" }
   ])
-
-  const handleCreateSurvey = () => {
-    if (school && grade && classNumber) {
-      // QR코드 페이지로 이동하면서 학급 정보를 쿼리 파라미터로 전달
-      const params = new URLSearchParams({
-        school,
-        grade,
-        class: classNumber,
-        teacher: teacherName
-      })
-      navigate(`/qrcode?${params.toString()}`)
-    } else {
-      alert("모든 정보를 입력해주세요.")
-    }
-  }
+  const [selectedRoundForQR, setSelectedRoundForQR] = useState<{ id: string, name: string } | null>(null)
 
   const addNewRound = () => {
     const newRoundNumber = surveyRounds.length + 1
@@ -54,30 +41,28 @@ export const SurveyManagement = ({
     navigate('/results')
   }
 
-  const viewComprehensiveResults = () => {
-    // 종합 결과 페이지로 이동
-    navigate('/results')
+  const showQRCode = (roundId: string, roundName: string) => {
+    setSelectedRoundForQR({ id: roundId, name: roundName })
+  }
+
+  const getQRCodeURL = () => {
+    if (!selectedRoundForQR) return ""
+    
+    // QR코드 URL 생성 (실제 구현 시 설문 ID와 함께)
+    const params = new URLSearchParams({
+      school,
+      grade,
+      class: classNumber,
+      teacher: teacherName,
+      round: selectedRoundForQR.id
+    })
+    return `${window.location.origin}/survey?${params.toString()}`
   }
 
   return (
     <Card className="p-6 space-y-6">
       <h2 className="text-xl font-bold text-foreground">설문 관리</h2>
       
-      {/* 설문지 생성 섹션 */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-foreground">새 설문 생성</h3>
-        <Button 
-          onClick={handleCreateSurvey}
-          variant="korean" 
-          className="w-full h-12"
-        >
-          설문지 생성하기
-        </Button>
-        <p className="text-center text-sm text-muted-foreground">
-          설문지와 함께 QR코드가 생성됩니다.
-        </p>
-      </div>
-
       {/* 회차별 결과 확인 섹션 */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -103,13 +88,45 @@ export const SurveyManagement = ({
                   <p className="text-sm text-muted-foreground">{round.date}</p>
                 </div>
               </div>
-              <Button 
-                onClick={() => viewRoundResults(round.id, round.name)}
-                variant="outline"
-                size="sm"
-              >
-                결과 보기
-              </Button>
+              <div className="flex items-center gap-2">
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button 
+                      onClick={() => showQRCode(round.id, round.name)}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-2"
+                    >
+                      <QrCode className="h-4 w-4" />
+                      QR코드 보기
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>{round.name} QR코드</DialogTitle>
+                    </DialogHeader>
+                    <div className="flex flex-col items-center space-y-4 py-4">
+                      <div className="w-64 h-64 border-2 border-border rounded-lg flex items-center justify-center bg-white">
+                        <div className="text-center">
+                          <QrCode className="h-16 w-16 mx-auto mb-2 text-muted-foreground" />
+                          <p className="text-sm text-muted-foreground">QR코드 생성 예정</p>
+                          <p className="text-xs text-muted-foreground mt-1">{getQRCodeURL()}</p>
+                        </div>
+                      </div>
+                      <p className="text-sm text-center text-muted-foreground">
+                        학생들이 이 QR코드를 스캔하여 {round.name}에 참여할 수 있습니다.
+                      </p>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+                <Button 
+                  onClick={() => viewRoundResults(round.id, round.name)}
+                  variant="outline"
+                  size="sm"
+                >
+                  결과 보기
+                </Button>
+              </div>
             </div>
           ))}
           
@@ -125,7 +142,7 @@ export const SurveyManagement = ({
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-foreground">종합 결과 확인</h3>
         <Button 
-          onClick={viewComprehensiveResults}
+          onClick={() => navigate('/results')}
           variant="outline" 
           className="w-full h-12 flex items-center gap-2"
         >
