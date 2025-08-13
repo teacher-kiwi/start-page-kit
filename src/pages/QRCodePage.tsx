@@ -122,7 +122,7 @@ const QRCodePage = () => {
               <div className="text-left bg-muted p-4 rounded-lg">
                 <h3 className="font-medium text-foreground mb-2">사용 방법:</h3>
                 <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
-                  <li>학생들이 스마트폰 카메라로 QR코드를 스캔합니다</li>
+                  <li>학생들이 카메라로 QR코드를 스캔합니다</li>
                   <li>설문지 페이지가 자동으로 열립니다</li>
                   <li>학생들이 자신의 이름을 선택하여 설문에 참여합니다</li>
                 </ol>
