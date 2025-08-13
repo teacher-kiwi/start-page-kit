@@ -92,7 +92,7 @@ export default {
 					'accordion-up': 'accordion-up 0.2s ease-out'
 				},
 				fontFamily: {
-					brand: ["'Pinkfong Baby Shark'", 'system-ui', 'sans-serif']
+					brand: ["'Single Day'", 'system-ui', 'sans-serif']
 				},
 				fontSize: {
 					display: ['64px', { lineHeight: '1', letterSpacing: '0em' }]
