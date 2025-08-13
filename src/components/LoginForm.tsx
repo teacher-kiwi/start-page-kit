@@ -7,7 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 export const LoginForm = () => {
   const navigate = useNavigate();
 
-  // 세션 변화 감지 및 자동 리다이렉트
+  // 테스트를 위해 자동 리다이렉트 비활성화
+  /*
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
@@ -24,6 +25,7 @@ export const LoginForm = () => {
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+  */
 
   const handleGoogleLogin = async () => {
     const redirectTo = `${window.location.origin}/`;
