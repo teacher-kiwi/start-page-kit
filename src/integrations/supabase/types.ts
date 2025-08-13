@@ -22,6 +22,7 @@ export type Database = {
           id: string
           school_name: string
           teacher_name: string | null
+          user_id: string | null
         }
         Insert: {
           class_number: number
@@ -30,6 +31,7 @@ export type Database = {
           id?: string
           school_name: string
           teacher_name?: string | null
+          user_id?: string | null
         }
         Update: {
           class_number?: number
@@ -38,6 +40,7 @@ export type Database = {
           id?: string
           school_name?: string
           teacher_name?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -59,6 +62,27 @@ export type Database = {
           embedding?: string | null
           id?: string
           metadata?: Json | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string | null
+          id: string
+          teacher_name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          teacher_name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          teacher_name?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -172,6 +196,10 @@ export type Database = {
       binary_quantize: {
         Args: { "": string } | { "": unknown }
         Returns: unknown
+      }
+      get_current_teacher_name: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       halfvec_avg: {
         Args: { "": number[] }
