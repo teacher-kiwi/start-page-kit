@@ -87,11 +87,17 @@ export default {
 					}
 				}
 			},
-			animation: {
-				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				animation: {
+					'accordion-down': 'accordion-down 0.2s ease-out',
+					'accordion-up': 'accordion-up 0.2s ease-out'
+				},
+				fontFamily: {
+					brand: ["'Pinkfong Baby Shark'", 'system-ui', 'sans-serif']
+				},
+				fontSize: {
+					display: ['64px', { lineHeight: '1', letterSpacing: '0em' }]
+				}
 			}
-		}
 	},
 	plugins: [require("tailwindcss-animate")],
 } satisfies Config;

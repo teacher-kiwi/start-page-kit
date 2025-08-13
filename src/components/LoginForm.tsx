@@ -25,7 +25,7 @@ export const LoginForm = () => {
       <div className="w-full max-w-md space-y-8">
         {/* Service Title */}
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-foreground mb-8">우리끼리 속마음</h1>
+          <h1 className="text-display font-brand font-bold text-foreground mb-8">우리끼리 속마음</h1>
         </div>
 
         {/* Mascot */}
