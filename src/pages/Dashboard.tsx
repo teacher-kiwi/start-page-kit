@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card"
 import { KoreanInput } from "@/components/ui/korean-input"
 import { Trash2, Plus, Upload } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
+import { getCurrentUser, clearDummySession } from "@/lib/auth-utils"
 
 interface StudentInput {
   id: string
@@ -116,16 +117,45 @@ const Dashboard = () => {
   useEffect(() => {
     let mounted = true
 
-    const deriveName = (session: any) => {
-      const meta = session?.user?.user_metadata || {}
+    const deriveName = (userObj: any) => {
+      // 더미 사용자인 경우
+      if (userObj.user_metadata) {
+        const meta = userObj.user_metadata
+        return meta.name || meta.full_name || userObj.email?.split("@")[0] || "테스트 사용자"
+      }
+      // 실제 Supabase 사용자인 경우
+      const meta = userObj?.user_metadata || {}
       return (
         meta.name ||
         meta.full_name ||
         meta.preferred_username ||
-        (session?.user?.email ? session.user.email.split("@")[0] : "")
+        (userObj?.email ? userObj.email.split("@")[0] : "")
       )
     }
 
+    const checkAuth = async () => {
+      if (!mounted) return
+      
+      const { user, isDemo } = await getCurrentUser()
+      
+      if (user) {
+        const name = deriveName(user)
+        setTeacherName(name)
+        
+        if (isDemo) {
+          // 더미 사용자의 경우 로컬 데이터로 초기화
+          setHasExistingClassroom(false)
+          setLoading(false)
+        } else {
+          // 실제 사용자의 경우 기존 로직 실행
+          loadClassroomData(name)
+        }
+      } else {
+        navigate("/")
+      }
+    }
+
+    // 실제 Supabase 세션 변화 감지 (더미가 아닐 때만)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!mounted) return
       if (session) {
@@ -133,20 +163,13 @@ const Dashboard = () => {
         setTeacherName(name)
         loadClassroomData(name)
       } else {
-        navigate("/")
+        // 실제 세션이 없어도 더미 세션이 있을 수 있으므로 checkAuth 실행
+        checkAuth()
       }
     })
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return
-      if (session) {
-        const name = deriveName(session)
-        setTeacherName(name)
-        loadClassroomData(name)
-      } else {
-        navigate("/")
-      }
-    })
+    // 초기 인증 확인
+    checkAuth()
 
     return () => {
       mounted = false
@@ -155,6 +178,8 @@ const Dashboard = () => {
   }, [navigate])
 
   const handleLogout = async () => {
+    // 더미 세션과 실제 세션 모두 정리
+    clearDummySession();
     await supabase.auth.signOut();
     navigate("/");
   }
