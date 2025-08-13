@@ -52,6 +52,19 @@ const Dashboard = () => {
 
   const loadClassroomData = async (teacherName: string) => {
     try {
+      // First create/update profile for current user
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        await supabase
+          .from("profiles")
+          .upsert({ 
+            user_id: user.id, 
+            teacher_name: teacherName 
+          }, { 
+            onConflict: 'user_id' 
+          })
+      }
+      
       // classrooms 테이블에서 선생님 이름으로 조회
       const { data: classroom, error: classroomError } = await supabase
         .from('classrooms')
@@ -202,13 +215,16 @@ const Dashboard = () => {
 
     try {
       // 1. classrooms 테이블에 학급 정보 저장
+      const { data: { user } } = await supabase.auth.getUser()
+      
       const { data: classroom, error: classroomError } = await supabase
         .from('classrooms')
         .insert({
           teacher_name: teacherName,
           school_name: school,
           grade: parseInt(grade),
-          class_number: parseInt(classNumber)
+          class_number: parseInt(classNumber),
+          user_id: user?.id
         })
         .select()
         .single()
