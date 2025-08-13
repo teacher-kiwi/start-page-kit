@@ -342,6 +342,9 @@ export const ClassroomManagement = ({
                   설정 필요
                 </span>
               )}
+              <span className="text-sm text-muted-foreground">
+                {isOpen ? "접기" : "펼치기"}
+              </span>
               {isOpen ? (
                 <ChevronDown className="h-4 w-4 text-muted-foreground" />
               ) : (
