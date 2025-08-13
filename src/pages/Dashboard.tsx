@@ -101,18 +101,48 @@ const Dashboard = () => {
   }
 
   useEffect(() => {
-    const storedTeacherName = localStorage.getItem("teacher_name")
-    if (!storedTeacherName) {
-      navigate("/")
-      return
+    let mounted = true
+
+    const deriveName = (session: any) => {
+      const meta = session?.user?.user_metadata || {}
+      return (
+        meta.name ||
+        meta.full_name ||
+        meta.preferred_username ||
+        (session?.user?.email ? session.user.email.split("@")[0] : "")
+      )
     }
-    setTeacherName(storedTeacherName)
-    loadClassroomData(storedTeacherName)
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mounted) return
+      if (session) {
+        const name = deriveName(session)
+        setTeacherName(name)
+        loadClassroomData(name)
+      } else {
+        navigate("/")
+      }
+    })
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return
+      if (session) {
+        const name = deriveName(session)
+        setTeacherName(name)
+        loadClassroomData(name)
+      } else {
+        navigate("/")
+      }
+    })
+
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
   }, [navigate])
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    localStorage.removeItem("teacher_name");
     navigate("/");
   }
 

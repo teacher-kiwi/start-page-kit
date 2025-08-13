@@ -9,30 +9,15 @@ export const LoginForm = () => {
 
   // 세션 변화 감지 및 자동 리다이렉트
   useEffect(() => {
-    const setTeacherNameFromSession = (session: any) => {
-      const meta = session?.user?.user_metadata || {};
-      const candidate =
-        meta.name ||
-        meta.full_name ||
-        meta.preferred_username ||
-        (session?.user?.email ? session.user.email.split("@")[0] : "");
-      if (candidate) {
-        localStorage.setItem("teacher_name", candidate);
-      }
-    };
-
-    // 1) 우선 리스너 등록
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
-        setTeacherNameFromSession(session);
         navigate("/dashboard", { replace: true });
       }
     });
 
-    // 2) 기존 세션 확인
+    // 기존 세션 확인
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        setTeacherNameFromSession(session);
         navigate("/dashboard", { replace: true });
       }
     });
