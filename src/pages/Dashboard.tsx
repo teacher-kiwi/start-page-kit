@@ -14,6 +14,7 @@ interface StudentInput {
   image: File | null
   imageUrl?: string
   student_id?: string
+  student_number?: number
 }
 
 interface Classroom {
@@ -43,10 +44,16 @@ const Dashboard = () => {
   const navigate = useNavigate()
 
   const addStudentInput = () => {
+    // 현재 학생들 중 가장 높은 번호 찾기
+    const maxNumber = studentInputs.reduce((max, student) => {
+      return Math.max(max, student.student_number || 0)
+    }, 0)
+    
     const newStudentInput: StudentInput = {
       id: Date.now().toString(),
       name: "",
-      image: null
+      image: null,
+      student_number: maxNumber + 1
     }
     setStudentInputs([...studentInputs, newStudentInput])
   }
@@ -102,7 +109,8 @@ const Dashboard = () => {
           name: student.name,
           image: null, // 이미지는 파일 객체가 아니므로 null로 설정
           imageUrl: student.photo_url || undefined, // 기존 이미지 URL
-          student_id: student.id
+          student_id: student.id,
+          student_number: student.student_number || (index + 1)
         }))
         setStudentInputs(studentInputsData)
       }
@@ -174,6 +182,12 @@ const Dashboard = () => {
   const updateStudentName = (id: string, name: string) => {
     setStudentInputs(studentInputs.map(input => 
       input.id === id ? { ...input, name } : input
+    ))
+  }
+
+  const updateStudentNumber = (id: string, number: number) => {
+    setStudentInputs(studentInputs.map(input => 
+      input.id === id ? { ...input, student_number: number } : input
     ))
   }
 
@@ -250,7 +264,8 @@ const Dashboard = () => {
           .map(student => ({
             name: student.name.trim(),
             classroom_id: classroom.id,
-            photo_url: student.imageUrl || null // 업로드된 이미지 URL
+            photo_url: student.imageUrl || null, // 업로드된 이미지 URL
+            student_number: student.student_number || null
           }))
 
         if (studentsData.length > 0) {
@@ -353,7 +368,8 @@ const Dashboard = () => {
         
         return (
           currentStudent.name !== input.name.trim() ||
-          currentStudent.photo_url !== (input.imageUrl || null)
+          currentStudent.photo_url !== (input.imageUrl || null) ||
+          currentStudent.student_number !== (input.student_number || null)
         )
       })
 
@@ -376,7 +392,8 @@ const Dashboard = () => {
         const newStudentsData = studentsToAdd.map(student => ({
           name: student.name.trim(),
           classroom_id: classroomId,
-          photo_url: student.imageUrl || null
+          photo_url: student.imageUrl || null,
+          student_number: student.student_number || null
         }))
 
         const { error: insertError } = await supabase
@@ -397,7 +414,8 @@ const Dashboard = () => {
             .from('students')
             .update({
               name: student.name.trim(),
-              photo_url: student.imageUrl || null
+              photo_url: student.imageUrl || null,
+              student_number: student.student_number || null
             })
             .eq('id', student.student_id)
 
@@ -520,9 +538,15 @@ const Dashboard = () => {
             <div className="space-y-3">
               {studentInputs.map((studentInput, index) => (
                 <div key={studentInput.id} className="flex items-center gap-4 p-4 border border-border rounded-lg">
-                  <span className="text-sm font-medium text-foreground min-w-[60px]">
-                    {index + 1}
-                  </span>
+                  <div className="w-[80px]">
+                    <KoreanInput
+                      type="number"
+                      placeholder="번호"
+                      value={studentInput.student_number?.toString() || ""}
+                      onChange={(e) => updateStudentNumber(studentInput.id, parseInt(e.target.value) || 0)}
+                      className="text-center"
+                    />
+                  </div>
                   
                   <div className="flex-1">
                     <KoreanInput
