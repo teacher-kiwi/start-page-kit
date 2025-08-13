@@ -2,7 +2,8 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { KoreanInput } from "@/components/ui/korean-input"
-import { Trash2, Plus, Upload } from "lucide-react"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { Trash2, Plus, Upload, ChevronDown, ChevronRight, Settings } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
 
 interface StudentInput {
@@ -43,6 +44,7 @@ export const ClassroomManagement = ({
   hasExistingClassroom,
   loadClassroomData
 }: ClassroomManagementProps) => {
+  const [isOpen, setIsOpen] = useState(!hasExistingClassroom) // 기존 클래스룸이 없으면 열려있음
   const addStudentInput = () => {
     // 현재 학생들 중 가장 높은 번호 찾기
     const maxNumber = studentInputs.reduce((max, student) => {
@@ -320,19 +322,45 @@ export const ClassroomManagement = ({
   }
 
   return (
-    <Card className="p-6 space-y-6">
-      <h2 className="text-xl font-bold text-foreground">학급 관리</h2>
-      
-      {/* 학교 입력 */}
-      <div className="space-y-3">
-        <h3 className="text-lg font-semibold text-foreground">학교</h3>
-        <KoreanInput
-          type="text"
-          placeholder="학교를 입력해주세요."
-          value={school}
-          onChange={(e) => setSchool(e.target.value)}
-        />
-      </div>
+    <Card className="p-6">
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <CollapsibleTrigger asChild>
+          <div className="flex items-center justify-between cursor-pointer hover:bg-accent/50 p-2 rounded-lg transition-colors">
+            <div className="flex items-center gap-3">
+              <Settings className="h-5 w-5 text-primary" />
+              <h2 className="text-xl font-bold text-foreground">학급 관리</h2>
+              {hasExistingClassroom && (
+                <div className="text-sm text-muted-foreground">
+                  {school} {grade}학년 {classNumber}반
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {!hasExistingClassroom && (
+                <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-full">
+                  설정 필요
+                </span>
+              )}
+              {isOpen ? (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              )}
+            </div>
+          </div>
+        </CollapsibleTrigger>
+        
+        <CollapsibleContent className="space-y-6 mt-4">
+          {/* 학교 입력 */}
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold text-foreground">학교</h3>
+            <KoreanInput
+              type="text"
+              placeholder="학교를 입력해주세요."
+              value={school}
+              onChange={(e) => setSchool(e.target.value)}
+            />
+          </div>
 
       {/* 학급 선택 */}
       <div className="space-y-4">
@@ -457,27 +485,29 @@ export const ClassroomManagement = ({
         </div>
       </div>
 
-      {/* 버튼 섹션 */}
-      <div className="space-y-4 pt-4">
-        {/* 학급 정보 저장/수정 버튼 */}
-        {hasExistingClassroom ? (
-          <Button 
-            onClick={handleUpdateClassroom}
-            variant="outline" 
-            className="w-full h-12"
-          >
-            학급 정보 수정하기
-          </Button>
-        ) : (
-          <Button 
-            onClick={handleSaveClassroom}
-            variant="outline" 
-            className="w-full h-12"
-          >
-            학급 정보 저장하기
-          </Button>
-        )}
-      </div>
+          {/* 버튼 섹션 */}
+          <div className="space-y-4 pt-4">
+            {/* 학급 정보 저장/수정 버튼 */}
+            {hasExistingClassroom ? (
+              <Button 
+                onClick={handleUpdateClassroom}
+                variant="outline" 
+                className="w-full h-12"
+              >
+                학급 정보 수정하기
+              </Button>
+            ) : (
+              <Button 
+                onClick={handleSaveClassroom}
+                variant="outline" 
+                className="w-full h-12"
+              >
+                학급 정보 저장하기
+              </Button>
+            )}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
     </Card>
   )
 }
