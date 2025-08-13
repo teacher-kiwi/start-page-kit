@@ -39,6 +39,22 @@ export const LoginForm = () => {
     }
   };
 
+  // 개발용 더미 로그인
+  const handleDummyLogin = () => {
+    // 더미 사용자 데이터를 localStorage에 저장
+    const dummyUser = {
+      id: "dummy-user-123",
+      email: "test@example.com",
+      user_metadata: {
+        full_name: "테스트 사용자",
+        name: "테스트 사용자"
+      }
+    };
+    
+    localStorage.setItem('dummy_session', JSON.stringify(dummyUser));
+    navigate("/dashboard", { replace: true });
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-8">
@@ -62,6 +78,10 @@ export const LoginForm = () => {
           <div className="space-y-4">
             <Button type="button" variant="korean" className="w-full" onClick={handleGoogleLogin}>
               Google로 계속하기
+            </Button>
+            {/* 개발용 더미 로그인 버튼 */}
+            <Button type="button" variant="outline" className="w-full" onClick={handleDummyLogin}>
+              🛠️ 개발용 로그인 (테스트)
             </Button>
           </div>
           <div className="text-center mt-6 text-sm text-muted-foreground">
