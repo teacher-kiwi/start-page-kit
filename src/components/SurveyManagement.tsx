@@ -553,9 +553,7 @@ export const SurveyManagement = ({
           <TrendingUp className="h-4 w-4" />
           모든 설문 결과 종합 보기
         </Button>
-        <p className="text-center text-sm text-muted-foreground">
-          모든 회차의 설문 결과를 종합하여 분석합니다.
-        </p>
+        <p className="text-center text-sm text-muted-foreground">모든 설문 결과를 종합하여 분석합니다.</p>
       </div>
     </Card>;
 };
