@@ -9,6 +9,28 @@ import { supabase } from "@/integrations/supabase/client"
 import { useToast } from "@/hooks/use-toast"
 import { resizeImageToLimit, formatFileSize } from "@/lib/image-utils"
 
+// 기본 학생 이미지들 import
+import defaultStudent1 from "@/assets/default-student-1.png"
+import defaultStudent2 from "@/assets/default-student-2.png"
+import defaultStudent3 from "@/assets/default-student-3.png"
+import defaultStudent4 from "@/assets/default-student-4.png"
+import defaultStudent5 from "@/assets/default-student-5.png"
+
+// 기본 이미지 배열
+const DEFAULT_STUDENT_IMAGES = [
+  defaultStudent1,
+  defaultStudent2,
+  defaultStudent3,
+  defaultStudent4,
+  defaultStudent5
+]
+
+// 랜덤 기본 이미지 선택 함수
+const getRandomDefaultImage = () => {
+  const randomIndex = Math.floor(Math.random() * DEFAULT_STUDENT_IMAGES.length)
+  return DEFAULT_STUDENT_IMAGES[randomIndex]
+}
+
 interface StudentInput {
   id: string
   name: string
@@ -70,6 +92,7 @@ export const ClassroomManagement = ({
       id: Date.now().toString(),
       name: "",
       image: null,
+      imageUrl: getRandomDefaultImage(), // 랜덤 기본 이미지 할당
       student_number: maxNumber + 1
     }
     setStudentInputs([...studentInputs, newStudentInput])
@@ -273,7 +296,7 @@ export const ClassroomManagement = ({
           .map(student => ({
             name: student.name.trim(),
             classroom_id: classroom.id,
-            photo_url: student.imageUrl || null, // 업로드된 이미지 URL
+            photo_url: student.imageUrl || getRandomDefaultImage(), // 업로드된 이미지 또는 기본 이미지
             student_number: student.student_number || null
           }))
 
@@ -415,7 +438,7 @@ export const ClassroomManagement = ({
         const newStudentsData = studentsToAdd.map(student => ({
           name: student.name.trim(),
           classroom_id: classroomId,
-          photo_url: student.imageUrl || null,
+          photo_url: student.imageUrl || getRandomDefaultImage(),
           student_number: student.student_number || null
         }))
 
@@ -437,7 +460,7 @@ export const ClassroomManagement = ({
             .from('students')
             .update({
               name: student.name.trim(),
-              photo_url: student.imageUrl || null,
+              photo_url: student.imageUrl || getRandomDefaultImage(),
               student_number: student.student_number || null
             })
             .eq('id', student.student_id)
