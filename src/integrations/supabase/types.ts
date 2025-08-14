@@ -107,36 +107,65 @@ export type Database = {
         }
         Relationships: []
       }
+      relationship_response_targets: {
+        Row: {
+          extra_value: number | null
+          id: string
+          response_id: string | null
+          target_id: string | null
+        }
+        Insert: {
+          extra_value?: number | null
+          id?: string
+          response_id?: string | null
+          target_id?: string | null
+        }
+        Update: {
+          extra_value?: number | null
+          id?: string
+          response_id?: string | null
+          target_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "relationship_response_targets_response_id_fkey"
+            columns: ["response_id"]
+            isOneToOne: false
+            referencedRelation: "relationship_responses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "relationship_response_targets_target_id_fkey"
+            columns: ["target_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       relationship_responses: {
         Row: {
           created_at: string | null
           id: string
-          question_id: string
-          respondent_id: string
-          target_id: string
+          respondent_id: string | null
+          survey_id: string | null
+          survey_question_id: string | null
         }
         Insert: {
           created_at?: string | null
           id?: string
-          question_id: string
-          respondent_id: string
-          target_id: string
+          respondent_id?: string | null
+          survey_id?: string | null
+          survey_question_id?: string | null
         }
         Update: {
           created_at?: string | null
           id?: string
-          question_id?: string
-          respondent_id?: string
-          target_id?: string
+          respondent_id?: string | null
+          survey_id?: string | null
+          survey_question_id?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "relationship_responses_question_id_fkey"
-            columns: ["question_id"]
-            isOneToOne: false
-            referencedRelation: "questions"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "relationship_responses_respondent_id_fkey"
             columns: ["respondent_id"]
@@ -145,10 +174,17 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "relationship_responses_target_id_fkey"
-            columns: ["target_id"]
+            foreignKeyName: "relationship_responses_survey_id_fkey"
+            columns: ["survey_id"]
             isOneToOne: false
-            referencedRelation: "students"
+            referencedRelation: "surveys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "relationship_responses_survey_question_id_fkey"
+            columns: ["survey_question_id"]
+            isOneToOne: false
+            referencedRelation: "survey_questions"
             referencedColumns: ["id"]
           },
         ]
@@ -181,6 +217,83 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "students_classroom_id_fkey"
+            columns: ["classroom_id"]
+            isOneToOne: false
+            referencedRelation: "classrooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      survey_questions: {
+        Row: {
+          created_at: string | null
+          id: string
+          order_num: number | null
+          polarity: string | null
+          question_id: string | null
+          survey_id: string | null
+          weight: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          order_num?: number | null
+          polarity?: string | null
+          question_id?: string | null
+          survey_id?: string | null
+          weight?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          order_num?: number | null
+          polarity?: string | null
+          question_id?: string | null
+          survey_id?: string | null
+          weight?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "survey_questions_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "survey_questions_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "surveys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      surveys: {
+        Row: {
+          classroom_id: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          title: string
+        }
+        Insert: {
+          classroom_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          title: string
+        }
+        Update: {
+          classroom_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "surveys_classroom_id_fkey"
             columns: ["classroom_id"]
             isOneToOne: false
             referencedRelation: "classrooms"
