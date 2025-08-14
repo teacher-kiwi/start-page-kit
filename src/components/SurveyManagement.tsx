@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Plus, BarChart3, TrendingUp, QrCode, Settings } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { QRCodeDialog } from "./QRCodeDialog";
 interface SurveyManagementProps {
   school: string;
   grade: string;
@@ -40,6 +41,7 @@ export const SurveyManagement = ({
     date: string;
   }>>([]);
   const [loadingSurveys, setLoadingSurveys] = useState(false);
+  const [qrDialogOpen, setQrDialogOpen] = useState(false);
   const [selectedRoundForQR, setSelectedRoundForQR] = useState<{
     id: string;
     name: string;
@@ -350,6 +352,7 @@ export const SurveyManagement = ({
       id: roundId,
       name: roundName
     });
+    setQrDialogOpen(true);
   };
   const getQRCodeURL = () => {
     if (!selectedRoundForQR) return "";
@@ -511,31 +514,10 @@ export const SurveyManagement = ({
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button onClick={() => showQRCode(round.id, round.name)} variant="outline" size="sm" className="flex items-center gap-2">
-                        <QrCode className="h-4 w-4" />
-                        QR코드 보기
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-md">
-                      <DialogHeader>
-                        <DialogTitle>{round.name} QR코드</DialogTitle>
-                      </DialogHeader>
-                      <div className="flex flex-col items-center space-y-4 py-4">
-                        <div className="w-64 h-64 border-2 border-border rounded-lg flex items-center justify-center bg-white">
-                          <div className="text-center">
-                            <QrCode className="h-16 w-16 mx-auto mb-2 text-muted-foreground" />
-                            <p className="text-sm text-muted-foreground">QR코드 생성 예정</p>
-                            <p className="text-xs text-muted-foreground mt-1">{getQRCodeURL()}</p>
-                          </div>
-                        </div>
-                        <p className="text-sm text-center text-muted-foreground">
-                          학생들이 이 QR코드를 스캔하여 {round.name}에 참여할 수 있습니다.
-                        </p>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
+                  <Button onClick={() => showQRCode(round.id, round.name)} variant="outline" size="sm" className="flex items-center gap-2">
+                    <QrCode className="h-4 w-4" />
+                    QR코드 보기
+                  </Button>
                   <Button onClick={() => viewRoundResults(round.id, round.name)} variant="outline" size="sm">
                     결과 보기
                   </Button>
@@ -555,5 +537,19 @@ export const SurveyManagement = ({
         </Button>
         <p className="text-center text-sm text-muted-foreground">모든 설문 결과를 종합하여 분석합니다.</p>
       </div>
+      
+      {/* QR 코드 다이얼로그 */}
+      {selectedRoundForQR && (
+        <QRCodeDialog
+          open={qrDialogOpen}
+          onOpenChange={setQrDialogOpen}
+          school={school}
+          grade={grade}
+          classNumber={classNumber}
+          teacherName={teacherName}
+          roundId={selectedRoundForQR.id}
+          roundName={selectedRoundForQR.name}
+        />
+      )}
     </Card>;
 };
