@@ -73,11 +73,15 @@ const Dashboard = () => {
       setGrade(classroom.grade?.toString() || '');
       setClassNumber(classroom.class_number?.toString() || '');
 
-      // students 테이블에서 해당 클래스룸의 학생들 조회
+      // students 테이블에서 해당 클래스룸의 학생들 조회 (번호 순으로 정렬)
       const {
         data: students,
         error: studentsError
-      } = await supabase.from('students').select('*').eq('classroom_id', classroom.id);
+      } = await supabase
+        .from('students')
+        .select('*')
+        .eq('classroom_id', classroom.id)
+        .order('student_number', { ascending: true });
       if (studentsError) {
         console.error('Error loading students:', studentsError);
       } else if (students) {

@@ -104,7 +104,7 @@ export const ClassroomManagement = ({
 
   const updateStudentNumber = (id: string, number: number) => {
     setStudentInputs(studentInputs.map(input => 
-      input.id === id ? { ...input, student_number: number } : input
+      input.id === id ? { ...input, student_number: number || undefined } : input
     ))
   }
 
@@ -438,16 +438,21 @@ export const ClassroomManagement = ({
               </Button>
             </div>
             
-            {/* 학생 입력 목록 */}
+            {/* 학생 입력 목록 - 번호 순으로 정렬하여 표시 */}
             <div className="space-y-3">
-              {studentInputs.map((studentInput, index) => (
+              {studentInputs
+                .sort((a, b) => (a.student_number || 0) - (b.student_number || 0))
+                .map((studentInput, index) => (
                 <div key={studentInput.id} className="flex items-center gap-4 p-4 border border-border rounded-lg">
                   <div className="w-[80px]">
                     <KoreanInput
                       type="number"
                       placeholder="번호"
                       value={studentInput.student_number?.toString() || ""}
-                      onChange={(e) => updateStudentNumber(studentInput.id, parseInt(e.target.value) || 0)}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value);
+                        updateStudentNumber(studentInput.id, isNaN(value) ? 0 : value);
+                      }}
                       className="text-center"
                     />
                   </div>
