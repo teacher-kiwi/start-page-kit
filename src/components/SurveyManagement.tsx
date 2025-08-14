@@ -20,8 +20,11 @@ interface SurveyManagementProps {
 interface Question {
   id: string
   question_text: string
-  polarity: string
   is_default: boolean
+}
+
+interface QuestionWithWeight extends Question {
+  weight: number
 }
 
 export const SurveyManagement = ({
@@ -42,9 +45,11 @@ export const SurveyManagement = ({
   // 설문 커스텀 관련 상태
   const [showCustomDialog, setShowCustomDialog] = useState(false)
   const [defaultQuestions, setDefaultQuestions] = useState<Question[]>([])
-  const [selectedQuestions, setSelectedQuestions] = useState<string[]>([])
+  const [selectedQuestionsWithWeights, setSelectedQuestionsWithWeights] = useState<QuestionWithWeight[]>([])
   const [surveyTitle, setSurveyTitle] = useState("")
   const [loading, setLoading] = useState(false)
+  const [customQuestion, setCustomQuestion] = useState("")
+  const [customQuestions, setCustomQuestions] = useState<QuestionWithWeight[]>([])
 
   // 기본 설문 문항 로드
   useEffect(() => {
@@ -61,7 +66,7 @@ export const SurveyManagement = ({
 
       if (error) throw error
       setDefaultQuestions(data || [])
-      setSelectedQuestions(data?.map(q => q.id) || [])
+      setSelectedQuestionsWithWeights(data?.map(q => ({ ...q, weight: 1 })) || [])
     } catch (error) {
       console.error('Error loading questions:', error)
       toast({
@@ -75,7 +80,9 @@ export const SurveyManagement = ({
   const handleShowCustomDialog = () => {
     setShowCustomDialog(true)
     setSurveyTitle(`${surveyRounds.length + 1}차 설문`)
-    setSelectedQuestions(defaultQuestions.map(q => q.id))
+    setSelectedQuestionsWithWeights(defaultQuestions.map(q => ({ ...q, weight: 1 })))
+    setCustomQuestions([])
+    setCustomQuestion("")
   }
 
   const addNewRound = () => {
@@ -98,7 +105,7 @@ export const SurveyManagement = ({
       return
     }
 
-    if (selectedQuestions.length === 0) {
+    if (selectedQuestionsWithWeights.length === 0 && customQuestions.length === 0) {
       toast({
         title: "입력 오류", 
         description: "최소 하나의 문항을 선택해주세요.",
@@ -125,7 +132,9 @@ export const SurveyManagement = ({
       
       setShowCustomDialog(false)
       setSurveyTitle("")
-      setSelectedQuestions([])
+      setSelectedQuestionsWithWeights([])
+      setCustomQuestions([])
+      setCustomQuestion("")
     } catch (error) {
       console.error('Error creating survey:', error)
       toast({
@@ -139,11 +148,55 @@ export const SurveyManagement = ({
   }
 
   const toggleQuestionSelection = (questionId: string) => {
-    setSelectedQuestions(prev => 
-      prev.includes(questionId) 
-        ? prev.filter(id => id !== questionId)
-        : [...prev, questionId]
+    setSelectedQuestionsWithWeights(prev => {
+      const exists = prev.find(q => q.id === questionId)
+      if (exists) {
+        return prev.filter(q => q.id !== questionId)
+      } else {
+        const question = defaultQuestions.find(q => q.id === questionId)
+        if (question) {
+          return [...prev, { ...question, weight: 1 }]
+        }
+        return prev
+      }
+    })
+  }
+
+  const updateQuestionWeight = (questionId: string, weight: number) => {
+    setSelectedQuestionsWithWeights(prev => 
+      prev.map(q => q.id === questionId ? { ...q, weight } : q)
     )
+  }
+
+  const updateCustomQuestionWeight = (index: number, weight: number) => {
+    setCustomQuestions(prev => 
+      prev.map((q, i) => i === index ? { ...q, weight } : q)
+    )
+  }
+
+  const addCustomQuestion = () => {
+    if (!customQuestion.trim()) {
+      toast({
+        title: "입력 오류",
+        description: "추가 문항을 입력해주세요.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    const newQuestion: QuestionWithWeight = {
+      id: `custom-${Date.now()}`,
+      question_text: customQuestion.trim(),
+      is_default: false,
+      weight: 1
+    }
+
+    setCustomQuestions(prev => [...prev, newQuestion])
+    setCustomQuestion("")
+  }
+
+  const removeCustomQuestion = (index: number) => {
+    setCustomQuestions(prev => prev.filter((_, i) => i !== index))
   }
 
   const viewRoundResults = (roundId: string, roundName: string) => {
@@ -213,37 +266,112 @@ export const SurveyManagement = ({
                 {/* 문항 선택 */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <Label className="text-base font-semibold">설문 문항 선택</Label>
+                    <Label className="text-base font-semibold">기본 설문 문항 선택</Label>
                     <div className="text-sm text-muted-foreground">
-                      {selectedQuestions.length}/{defaultQuestions.length} 선택됨
+                      {selectedQuestionsWithWeights.length}/{defaultQuestions.length} 선택됨
                     </div>
                   </div>
                   
                   <div className="space-y-3 max-h-60 overflow-y-auto border rounded-lg p-4">
-                    {defaultQuestions.map((question, index) => (
-                      <div key={question.id} className="flex items-start space-x-3">
-                        <Checkbox
-                          id={`question-${question.id}`}
-                          checked={selectedQuestions.includes(question.id)}
-                          onCheckedChange={() => toggleQuestionSelection(question.id)}
-                        />
-                        <div className="grid gap-1.5 leading-none">
-                          <Label 
-                            htmlFor={`question-${question.id}`}
-                            className="text-sm font-normal cursor-pointer"
-                          >
-                            {index + 1}. {question.question_text}
-                          </Label>
-                          <p className="text-xs text-muted-foreground">
-                            극성: {question.polarity === 'positive' ? '긍정적' : '부정적'}
-                          </p>
+                    {defaultQuestions.map((question, index) => {
+                      const selectedQuestion = selectedQuestionsWithWeights.find(q => q.id === question.id)
+                      const isSelected = !!selectedQuestion
+                      
+                      return (
+                        <div key={question.id} className="space-y-2">
+                          <div className="flex items-start space-x-3">
+                            <Checkbox
+                              id={`question-${question.id}`}
+                              checked={isSelected}
+                              onCheckedChange={() => toggleQuestionSelection(question.id)}
+                            />
+                            <div className="flex-1 grid gap-1.5 leading-none">
+                              <Label 
+                                htmlFor={`question-${question.id}`}
+                                className="text-sm font-normal cursor-pointer"
+                              >
+                                {index + 1}. {question.question_text}
+                              </Label>
+                            </div>
+                          </div>
+                          
+                          {isSelected && (
+                            <div className="ml-8 flex items-center gap-2">
+                              <Label className="text-xs text-muted-foreground">점수:</Label>
+                              <Input
+                                type="number"
+                                value={selectedQuestion.weight}
+                                onChange={(e) => updateQuestionWeight(question.id, Number(e.target.value))}
+                                className="w-20 h-8 text-xs"
+                                placeholder="1"
+                              />
+                              <span className="text-xs text-muted-foreground">(음수: 부정, 양수: 긍정)</span>
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                     
                     {defaultQuestions.length === 0 && (
                       <div className="text-center py-4 text-muted-foreground">
                         <p className="text-sm">기본 설문 문항이 없습니다.</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 추가 문항 섹션 */}
+                  <div className="space-y-4 pt-4 border-t">
+                    <Label className="text-base font-semibold">추가 문항</Label>
+                    
+                    {/* 추가 문항 입력 */}
+                    <div className="flex gap-2">
+                      <Input
+                        value={customQuestion}
+                        onChange={(e) => setCustomQuestion(e.target.value)}
+                        placeholder="새로운 문항을 입력하세요"
+                        className="flex-1"
+                      />
+                      <Button
+                        onClick={addCustomQuestion}
+                        variant="outline"
+                        size="sm"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    {/* 추가된 문항 목록 */}
+                    {customQuestions.length > 0 && (
+                      <div className="space-y-2 max-h-40 overflow-y-auto border rounded-lg p-3">
+                        {customQuestions.map((question, index) => (
+                          <div key={question.id} className="space-y-2">
+                            <div className="flex items-start justify-between">
+                              <Label className="text-sm flex-1">
+                                {defaultQuestions.length + index + 1}. {question.question_text}
+                              </Label>
+                              <Button
+                                onClick={() => removeCustomQuestion(index)}
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0"
+                              >
+                                ×
+                              </Button>
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                              <Label className="text-xs text-muted-foreground">점수:</Label>
+                              <Input
+                                type="number"
+                                value={question.weight}
+                                onChange={(e) => updateCustomQuestionWeight(index, Number(e.target.value))}
+                                className="w-20 h-8 text-xs"
+                                placeholder="1"
+                              />
+                              <span className="text-xs text-muted-foreground">(음수: 부정, 양수: 긍정)</span>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>
@@ -260,7 +388,7 @@ export const SurveyManagement = ({
                   </Button>
                   <Button
                     onClick={handleCreateSurvey}
-                    disabled={loading || selectedQuestions.length === 0}
+                    disabled={loading || (selectedQuestionsWithWeights.length === 0 && customQuestions.length === 0)}
                   >
                     {loading ? "생성 중..." : "설문 생성"}
                   </Button>

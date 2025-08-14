@@ -91,21 +91,18 @@ export type Database = {
           created_at: string | null
           id: string
           is_default: boolean
-          polarity: string
           question_text: string
         }
         Insert: {
           created_at?: string | null
           id?: string
           is_default?: boolean
-          polarity: string
           question_text: string
         }
         Update: {
           created_at?: string | null
           id?: string
           is_default?: boolean
-          polarity?: string
           question_text?: string
         }
         Relationships: []
@@ -232,7 +229,6 @@ export type Database = {
           created_at: string | null
           id: string
           order_num: number | null
-          polarity: string | null
           question_id: string | null
           survey_id: string | null
           weight: number | null
@@ -241,7 +237,6 @@ export type Database = {
           created_at?: string | null
           id?: string
           order_num?: number | null
-          polarity?: string | null
           question_id?: string | null
           survey_id?: string | null
           weight?: number | null
@@ -250,7 +245,6 @@ export type Database = {
           created_at?: string | null
           id?: string
           order_num?: number | null
-          polarity?: string | null
           question_id?: string | null
           survey_id?: string | null
           weight?: number | null
