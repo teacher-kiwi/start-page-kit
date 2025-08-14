@@ -367,7 +367,7 @@ export const ClassroomManagement = ({
 
     // 새로 추가하려는 학생 중 이름이 비어있는 학생 체크
     const newEmptyNameStudents = studentInputs.filter(student => 
-      !student.student_id && student.name && !student.name.trim()
+      !student.student_id && (!student.name || !student.name.trim())
     )
     if (newEmptyNameStudents.length > 0) {
       toast({
