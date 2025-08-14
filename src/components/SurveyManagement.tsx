@@ -37,10 +37,8 @@ export const SurveyManagement = ({
   const navigate = useNavigate()
   const { toast } = useToast()
   
-  const [surveyRounds, setSurveyRounds] = useState<Array<{ id: string, name: string, date: string }>>([
-    { id: "1", name: "1차 설문", date: "2024-01-15" },
-    { id: "2", name: "2차 설문", date: "2024-02-15" }
-  ])
+  const [surveyRounds, setSurveyRounds] = useState<Array<{ id: string, name: string, date: string }>>([])
+  const [loadingSurveys, setLoadingSurveys] = useState(false)
   const [selectedRoundForQR, setSelectedRoundForQR] = useState<{ id: string, name: string } | null>(null)
   
   // 설문 커스텀 관련 상태
@@ -57,7 +55,55 @@ export const SurveyManagement = ({
   useEffect(() => {
     loadDefaultQuestions()
     loadPreviousQuestions()
+    loadSurveys()
   }, [])
+
+  const loadSurveys = async () => {
+    setLoadingSurveys(true)
+    try {
+      const { data: userData } = await supabase.auth.getUser()
+      if (!userData.user) return
+
+      // 현재 사용자의 교실에서 생성된 설문들을 가져옴
+      const { data, error } = await supabase
+        .from('surveys')
+        .select(`
+          id,
+          title,
+          created_at,
+          classrooms!inner(
+            user_id,
+            school_name,
+            grade,
+            class_number
+          )
+        `)
+        .eq('classrooms.user_id', userData.user.id)
+        .eq('classrooms.school_name', school)
+        .eq('classrooms.grade', parseInt(grade))
+        .eq('classrooms.class_number', parseInt(classNumber))
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+
+      const surveys = data?.map(survey => ({
+        id: survey.id,
+        name: survey.title,
+        date: new Date(survey.created_at).toLocaleDateString('ko-KR')
+      })) || []
+
+      setSurveyRounds(surveys)
+    } catch (error) {
+      console.error('Error loading surveys:', error)
+      toast({
+        title: "오류",
+        description: "설문 목록을 불러오는데 실패했습니다.",
+        variant: "destructive"
+      })
+    } finally {
+      setLoadingSurveys(false)
+    }
+  }
 
   const loadDefaultQuestions = async () => {
     try {
@@ -254,6 +300,8 @@ export const SurveyManagement = ({
       
       // 이전 문항 목록 새로고침
       loadPreviousQuestions()
+      // 설문 목록 새로고침
+      loadSurveys()
     } catch (error) {
       console.error('Error creating survey:', error)
       toast({
@@ -560,58 +608,62 @@ export const SurveyManagement = ({
         </div>
         
         <div className="space-y-3">
-          {surveyRounds.map((round) => (
-            <div key={round.id} className="flex items-center justify-between p-4 border border-border rounded-lg bg-card">
-              <div className="flex items-center gap-3">
-                <BarChart3 className="h-5 w-5 text-primary" />
-                <div>
-                  <h4 className="font-medium text-foreground">{round.name}</h4>
-                  <p className="text-sm text-muted-foreground">{round.date}</p>
+          {loadingSurveys ? (
+            <div className="text-center py-8">
+              <p className="text-sm text-muted-foreground">설문 목록을 불러오는 중...</p>
+            </div>
+          ) : surveyRounds.length > 0 ? (
+            surveyRounds.map((round) => (
+              <div key={round.id} className="flex items-center justify-between p-4 border border-border rounded-lg bg-card">
+                <div className="flex items-center gap-3">
+                  <BarChart3 className="h-5 w-5 text-primary" />
+                  <div>
+                    <h4 className="font-medium text-foreground">{round.name}</h4>
+                    <p className="text-sm text-muted-foreground">{round.date}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button 
+                        onClick={() => showQRCode(round.id, round.name)}
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2"
+                      >
+                        <QrCode className="h-4 w-4" />
+                        QR코드 보기
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>{round.name} QR코드</DialogTitle>
+                      </DialogHeader>
+                      <div className="flex flex-col items-center space-y-4 py-4">
+                        <div className="w-64 h-64 border-2 border-border rounded-lg flex items-center justify-center bg-white">
+                          <div className="text-center">
+                            <QrCode className="h-16 w-16 mx-auto mb-2 text-muted-foreground" />
+                            <p className="text-sm text-muted-foreground">QR코드 생성 예정</p>
+                            <p className="text-xs text-muted-foreground mt-1">{getQRCodeURL()}</p>
+                          </div>
+                        </div>
+                        <p className="text-sm text-center text-muted-foreground">
+                          학생들이 이 QR코드를 스캔하여 {round.name}에 참여할 수 있습니다.
+                        </p>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                  <Button 
+                    onClick={() => viewRoundResults(round.id, round.name)}
+                    variant="outline"
+                    size="sm"
+                  >
+                    결과 보기
+                  </Button>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button 
-                      onClick={() => showQRCode(round.id, round.name)}
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center gap-2"
-                    >
-                      <QrCode className="h-4 w-4" />
-                      QR코드 보기
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                      <DialogTitle>{round.name} QR코드</DialogTitle>
-                    </DialogHeader>
-                    <div className="flex flex-col items-center space-y-4 py-4">
-                      <div className="w-64 h-64 border-2 border-border rounded-lg flex items-center justify-center bg-white">
-                        <div className="text-center">
-                          <QrCode className="h-16 w-16 mx-auto mb-2 text-muted-foreground" />
-                          <p className="text-sm text-muted-foreground">QR코드 생성 예정</p>
-                          <p className="text-xs text-muted-foreground mt-1">{getQRCodeURL()}</p>
-                        </div>
-                      </div>
-                      <p className="text-sm text-center text-muted-foreground">
-                        학생들이 이 QR코드를 스캔하여 {round.name}에 참여할 수 있습니다.
-                      </p>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-                <Button 
-                  onClick={() => viewRoundResults(round.id, round.name)}
-                  variant="outline"
-                  size="sm"
-                >
-                  결과 보기
-                </Button>
-              </div>
-            </div>
-          ))}
-          
-          {surveyRounds.length === 0 && (
+            ))
+          ) : (
             <div className="text-center py-8 text-muted-foreground">
               <p className="text-sm">회차 추가 버튼을 눌러 설문 회차를 추가하세요</p>
             </div>
