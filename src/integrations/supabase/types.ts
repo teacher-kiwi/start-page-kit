@@ -273,6 +273,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           title: string
+          token: string | null
         }
         Insert: {
           classroom_id?: string | null
@@ -280,6 +281,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           title: string
+          token?: string | null
         }
         Update: {
           classroom_id?: string | null
@@ -287,6 +289,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           title?: string
+          token?: string | null
         }
         Relationships: [
           {
@@ -309,6 +312,10 @@ export type Database = {
       }
       get_current_teacher_name: {
         Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      get_survey_id_by_token: {
+        Args: { survey_token: string }
         Returns: string
       }
       halfvec_avg: {
@@ -342,6 +349,10 @@ export type Database = {
       hnswhandler: {
         Args: { "": unknown }
         Returns: unknown
+      }
+      is_token_valid: {
+        Args: { survey_token: string }
+        Returns: boolean
       }
       ivfflat_bit_support: {
         Args: { "": unknown }
