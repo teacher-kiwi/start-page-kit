@@ -497,7 +497,7 @@ export const ClassroomManagement = ({
             <div className="space-y-3">
               {studentInputs
                 .sort((a, b) => (a.student_number || 0) - (b.student_number || 0))
-                .map((studentInput, index) => (
+                .map((studentInput) => (
                 <div key={studentInput.id} className={`flex items-center gap-4 p-4 border rounded-lg ${
                   checkDuplicateNumbers().includes(studentInput.student_number) ? 'border-destructive bg-destructive/10' : 'border-border'
                 }`}>
