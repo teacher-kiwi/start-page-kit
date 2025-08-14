@@ -6,6 +6,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Trash2, Plus, Upload, ChevronDown, ChevronRight, Settings } from "lucide-react"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { supabase } from "@/integrations/supabase/client"
+import { useToast } from "@/hooks/use-toast"
 
 interface StudentInput {
   id: string
@@ -46,6 +47,17 @@ export const ClassroomManagement = ({
   loadClassroomData
 }: ClassroomManagementProps) => {
   const [isOpen, setIsOpen] = useState(!hasExistingClassroom) // 기존 클래스룸이 없으면 열려있음
+  const { toast } = useToast()
+
+  // 중복 번호 체크 함수
+  const checkDuplicateNumbers = () => {
+    const numbers = studentInputs
+      .filter(student => student.student_number && student.student_number > 0)
+      .map(student => student.student_number)
+    
+    const duplicates = numbers.filter((num, index) => numbers.indexOf(num) !== index)
+    return [...new Set(duplicates)]
+  }
 
   const addStudentInput = () => {
     // 현재 학생들 중 가장 높은 번호 찾기
@@ -103,6 +115,19 @@ export const ClassroomManagement = ({
   }
 
   const updateStudentNumber = (id: string, number: number) => {
+    // 중복 번호 체크
+    const duplicates = studentInputs.filter(student => 
+      student.id !== id && student.student_number === number && number > 0
+    )
+    
+    if (duplicates.length > 0 && number > 0) {
+      toast({
+        title: "중복된 번호",
+        description: `번호 ${number}은(는) 이미 다른 학생이 사용 중입니다.`,
+        variant: "destructive",
+      })
+    }
+    
     setStudentInputs(studentInputs.map(input => 
       input.id === id ? { ...input, student_number: number || undefined } : input
     ))
@@ -148,7 +173,22 @@ export const ClassroomManagement = ({
 
   const handleSaveClassroom = async () => {
     if (!school || !grade || !classNumber) {
-      alert("모든 정보를 입력해주세요.")
+      toast({
+        title: "입력 오류",
+        description: "모든 정보를 입력해주세요.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // 중복 번호 체크
+    const duplicates = checkDuplicateNumbers()
+    if (duplicates.length > 0) {
+      toast({
+        title: "중복된 번호",
+        description: `번호 ${duplicates.join(', ')}이(가) 중복됩니다. 번호를 다시 확인해주세요.`,
+        variant: "destructive",
+      })
       return
     }
 
@@ -210,7 +250,22 @@ export const ClassroomManagement = ({
 
   const handleUpdateClassroom = async () => {
     if (!school || !grade || !classNumber) {
-      alert("모든 정보를 입력해주세요.")
+      toast({
+        title: "입력 오류",
+        description: "모든 정보를 입력해주세요.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // 중복 번호 체크
+    const duplicates = checkDuplicateNumbers()
+    if (duplicates.length > 0) {
+      toast({
+        title: "중복된 번호",
+        description: `번호 ${duplicates.join(', ')}이(가) 중복됩니다. 번호를 다시 확인해주세요.`,
+        variant: "destructive",
+      })
       return
     }
 
@@ -443,7 +498,9 @@ export const ClassroomManagement = ({
               {studentInputs
                 .sort((a, b) => (a.student_number || 0) - (b.student_number || 0))
                 .map((studentInput, index) => (
-                <div key={studentInput.id} className="flex items-center gap-4 p-4 border border-border rounded-lg">
+                <div key={studentInput.id} className={`flex items-center gap-4 p-4 border rounded-lg ${
+                  checkDuplicateNumbers().includes(studentInput.student_number) ? 'border-destructive bg-destructive/10' : 'border-border'
+                }`}>
                   <div className="w-[80px]">
                     <KoreanInput
                       type="number"
