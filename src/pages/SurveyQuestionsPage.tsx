@@ -147,6 +147,9 @@ const SurveyQuestionsPage = () => {
   const submitResponses = async (finalResponses: Response[]) => {
     try {
       setSubmitting(true)
+      
+      console.log('Submitting responses:', finalResponses)
+      console.log('Respondent ID:', respondentId)
 
       // 1. relationship_responses 테이블에 응답 정보 저장
       const responsesToSave = finalResponses.map(response => ({
@@ -154,6 +157,8 @@ const SurveyQuestionsPage = () => {
         survey_question_id: null, // 현재는 survey_questions가 아닌 직접 questions를 사용
         respondent_id: respondentId
       }))
+
+      console.log('Data to save:', responsesToSave)
 
       const { data: savedResponses, error: responseError } = await supabase
         .from('relationship_responses')
