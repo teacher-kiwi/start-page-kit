@@ -264,6 +264,17 @@ export const ClassroomManagement = ({
       return
     }
 
+    // 이름이 비어있는 학생 체크
+    const emptyNameStudents = studentInputs.filter(student => !student.name.trim())
+    if (emptyNameStudents.length > 0) {
+      toast({
+        title: "입력 오류", 
+        description: "모든 학생의 이름을 입력해주세요.",
+        variant: "destructive",
+      })
+      return
+    }
+
     // 중복 번호 체크
     const duplicates = checkDuplicateNumbers()
     if (duplicates.length > 0) {
@@ -336,6 +347,32 @@ export const ClassroomManagement = ({
       toast({
         title: "입력 오류",
         description: "모든 정보를 입력해주세요.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // 이름이 비어있는 학생 체크 (기존 학생 중에서)
+    const emptyNameStudents = studentInputs.filter(student => 
+      student.student_id && !student.name.trim()
+    )
+    if (emptyNameStudents.length > 0) {
+      toast({
+        title: "입력 오류",
+        description: "기존 학생의 이름을 비워둘 수 없습니다.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // 새로 추가하려는 학생 중 이름이 비어있는 학생 체크
+    const newEmptyNameStudents = studentInputs.filter(student => 
+      !student.student_id && student.name && !student.name.trim()
+    )
+    if (newEmptyNameStudents.length > 0) {
+      toast({
+        title: "입력 오류",
+        description: "새로 추가하는 학생의 이름을 입력해주세요.",
         variant: "destructive",
       })
       return
