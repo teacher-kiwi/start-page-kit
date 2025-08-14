@@ -114,6 +114,10 @@ export const ClassroomManagement = ({
     if (!studentInput.student_id) {
       // 아직 저장되지 않은 학생은 UI에서만 제거
       removeStudentInput(studentInput.id)
+      toast({
+        title: "학생 제거됨",
+        description: "추가 중이던 학생이 제거되었습니다.",
+      })
       return
     }
 
@@ -126,17 +130,28 @@ export const ClassroomManagement = ({
 
       if (error) {
         console.error('Error deleting student:', error)
-        alert('학생 삭제 중 오류가 발생했습니다.')
+        toast({
+          title: "삭제 실패",
+          description: "학생 삭제 중 오류가 발생했습니다.",
+          variant: "destructive",
+        })
         return
       }
 
-      // 성공 시 데이터 새로고침
-      await loadClassroomData(teacherName)
-      alert('학생이 삭제되었습니다. 관련된 모든 설문 응답도 함께 삭제되었습니다.')
+      // 성공 시 UI에서만 해당 학생 제거 (전체 새로고침 없이)
+      removeStudentInput(studentInput.id)
+      toast({
+        title: "학생 삭제됨",
+        description: "학생이 삭제되었습니다. 관련된 모든 설문 응답도 함께 삭제되었습니다.",
+      })
 
     } catch (error) {
       console.error('Error deleting student:', error)
-      alert('학생 삭제 중 오류가 발생했습니다.')
+      toast({
+        title: "삭제 실패", 
+        description: "학생 삭제 중 오류가 발생했습니다.",
+        variant: "destructive",
+      })
     }
   }
 
