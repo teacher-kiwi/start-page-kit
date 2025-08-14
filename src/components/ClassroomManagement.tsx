@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { KoreanInput } from "@/components/ui/korean-input"
@@ -48,11 +48,6 @@ export const ClassroomManagement = ({
 }: ClassroomManagementProps) => {
   const [isOpen, setIsOpen] = useState(!hasExistingClassroom) // 기존 클래스룸이 없으면 열려있음
   const { toast } = useToast()
-
-  // 정렬된 학생 목록을 메모이제이션하여 컴포넌트 매칭 문제 해결
-  const sortedStudentInputs = useMemo(() => {
-    return [...studentInputs].sort((a, b) => (a.student_number || 0) - (b.student_number || 0))
-  }, [studentInputs])
 
   // 중복 번호 체크 함수
   const checkDuplicateNumbers = () => {
@@ -498,9 +493,9 @@ export const ClassroomManagement = ({
               </Button>
             </div>
             
-            {/* 학생 입력 목록 - 메모이제이션된 정렬 목록 사용 */}
+            {/* 학생 입력 목록 - 정렬 없이 원본 순서로 표시 */}
             <div className="space-y-3">
-              {sortedStudentInputs.map((studentInput) => (
+              {studentInputs.map((studentInput) => (
                 <div key={studentInput.id} className={`flex items-center gap-4 p-4 border rounded-lg ${
                   checkDuplicateNumbers().includes(studentInput.student_number) ? 'border-destructive bg-destructive/10' : 'border-border'
                 }`}>
