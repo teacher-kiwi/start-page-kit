@@ -148,24 +148,41 @@ const SurveyQuestionsPage = () => {
     try {
       setSubmitting(true)
 
-      // relationship_responses 테이블에 저장
+      // 1. relationship_responses 테이블에 응답 정보 저장
       const responsesToSave = finalResponses.map(response => ({
-        question_id: response.question_id,
-        respondent_id: respondentId,
-        target_id: response.target_id
+        survey_question_id: response.question_id, // survey_questions 테이블의 ID 사용
+        respondent_id: respondentId
       }))
 
-      const { error } = await supabase
-        .from('relationship_responses' as any)
+      const { data: savedResponses, error: responseError } = await supabase
+        .from('relationship_responses')
         .insert(responsesToSave)
+        .select('id')
 
-      if (error) {
-        console.error('Error saving responses:', error)
+      if (responseError) {
+        console.error('Error saving responses:', responseError)
         alert('응답 저장 중 오류가 발생했습니다.')
         return
       }
 
-      // 완료 페이지로 이동하거나 완료 메시지
+      // 2. relationship_response_targets 테이블에 선택된 학생 정보 저장
+      const targetsToSave = finalResponses.map((response, index) => ({
+        response_id: savedResponses[index].id,
+        target_id: response.target_id,
+        extra_value: 0 // 기본값
+      }))
+
+      const { error: targetError } = await supabase
+        .from('relationship_response_targets')
+        .insert(targetsToSave)
+
+      if (targetError) {
+        console.error('Error saving targets:', targetError)
+        alert('응답 대상 저장 중 오류가 발생했습니다.')
+        return
+      }
+
+      // 완료 처리
       alert('설문이 완료되었습니다!')
       localStorage.removeItem('selected_student_id')
       navigate('/')
