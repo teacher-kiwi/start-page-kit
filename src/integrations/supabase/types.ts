@@ -90,18 +90,21 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          is_default: boolean
           polarity: string
           question_text: string
         }
         Insert: {
           created_at?: string | null
           id?: string
+          is_default?: boolean
           polarity: string
           question_text: string
         }
         Update: {
           created_at?: string | null
           id?: string
+          is_default?: boolean
           polarity?: string
           question_text?: string
         }

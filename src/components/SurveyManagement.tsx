@@ -1,15 +1,27 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Plus, BarChart3, TrendingUp, QrCode } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Plus, BarChart3, TrendingUp, QrCode, Settings } from "lucide-react"
+import { supabase } from "@/integrations/supabase/client"
+import { useToast } from "@/hooks/use-toast"
 
 interface SurveyManagementProps {
   school: string
   grade: string
   classNumber: string
   teacherName: string
+}
+
+interface Question {
+  id: string
+  question_text: string
+  polarity: string
+  is_default: boolean
 }
 
 export const SurveyManagement = ({
@@ -19,11 +31,52 @@ export const SurveyManagement = ({
   teacherName
 }: SurveyManagementProps) => {
   const navigate = useNavigate()
+  const { toast } = useToast()
+  
   const [surveyRounds, setSurveyRounds] = useState<Array<{ id: string, name: string, date: string }>>([
     { id: "1", name: "1차 설문", date: "2024-01-15" },
     { id: "2", name: "2차 설문", date: "2024-02-15" }
   ])
   const [selectedRoundForQR, setSelectedRoundForQR] = useState<{ id: string, name: string } | null>(null)
+  
+  // 설문 커스텀 관련 상태
+  const [showCustomDialog, setShowCustomDialog] = useState(false)
+  const [defaultQuestions, setDefaultQuestions] = useState<Question[]>([])
+  const [selectedQuestions, setSelectedQuestions] = useState<string[]>([])
+  const [surveyTitle, setSurveyTitle] = useState("")
+  const [loading, setLoading] = useState(false)
+
+  // 기본 설문 문항 로드
+  useEffect(() => {
+    loadDefaultQuestions()
+  }, [])
+
+  const loadDefaultQuestions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('questions')
+        .select('*')
+        .eq('is_default', true)
+        .order('created_at')
+
+      if (error) throw error
+      setDefaultQuestions(data || [])
+      setSelectedQuestions(data?.map(q => q.id) || [])
+    } catch (error) {
+      console.error('Error loading questions:', error)
+      toast({
+        title: "오류",
+        description: "기본 설문 문항을 불러오는데 실패했습니다.",
+        variant: "destructive"
+      })
+    }
+  }
+
+  const handleShowCustomDialog = () => {
+    setShowCustomDialog(true)
+    setSurveyTitle(`${surveyRounds.length + 1}차 설문`)
+    setSelectedQuestions(defaultQuestions.map(q => q.id))
+  }
 
   const addNewRound = () => {
     const newRoundNumber = surveyRounds.length + 1
@@ -33,6 +86,64 @@ export const SurveyManagement = ({
       date: new Date().toISOString().split('T')[0]
     }
     setSurveyRounds([...surveyRounds, newRound])
+  }
+
+  const handleCreateSurvey = async () => {
+    if (!surveyTitle.trim()) {
+      toast({
+        title: "입력 오류",
+        description: "설문 제목을 입력해주세요.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    if (selectedQuestions.length === 0) {
+      toast({
+        title: "입력 오류", 
+        description: "최소 하나의 문항을 선택해주세요.",
+        variant: "destructive"
+      })
+      return
+    }
+
+    setLoading(true)
+    try {
+      // 여기서 실제 설문 생성 로직을 구현할 수 있습니다
+      // 현재는 로컬 상태만 업데이트
+      const newRound = {
+        id: Date.now().toString(),
+        name: surveyTitle,
+        date: new Date().toISOString().split('T')[0]
+      }
+      setSurveyRounds([...surveyRounds, newRound])
+      
+      toast({
+        title: "성공",
+        description: "새로운 설문이 생성되었습니다."
+      })
+      
+      setShowCustomDialog(false)
+      setSurveyTitle("")
+      setSelectedQuestions([])
+    } catch (error) {
+      console.error('Error creating survey:', error)
+      toast({
+        title: "오류",
+        description: "설문 생성에 실패했습니다.",
+        variant: "destructive"
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const toggleQuestionSelection = (questionId: string) => {
+    setSelectedQuestions(prev => 
+      prev.includes(questionId) 
+        ? prev.filter(id => id !== questionId)
+        : [...prev, questionId]
+    )
   }
 
   const viewRoundResults = (roundId: string, roundName: string) => {
@@ -67,15 +178,96 @@ export const SurveyManagement = ({
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold text-foreground">회차별 결과 확인</h3>
-          <Button 
-            onClick={addNewRound}
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            회차 추가
-          </Button>
+          <Dialog open={showCustomDialog} onOpenChange={setShowCustomDialog}>
+            <DialogTrigger asChild>
+              <Button 
+                onClick={handleShowCustomDialog}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                회차 추가
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  설문 커스텀
+                </DialogTitle>
+              </DialogHeader>
+              
+              <div className="space-y-6 py-4">
+                {/* 설문 제목 입력 */}
+                <div className="space-y-2">
+                  <Label htmlFor="survey-title">설문 제목</Label>
+                  <Input
+                    id="survey-title"
+                    value={surveyTitle}
+                    onChange={(e) => setSurveyTitle(e.target.value)}
+                    placeholder="설문 제목을 입력하세요"
+                  />
+                </div>
+
+                {/* 문항 선택 */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-base font-semibold">설문 문항 선택</Label>
+                    <div className="text-sm text-muted-foreground">
+                      {selectedQuestions.length}/{defaultQuestions.length} 선택됨
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3 max-h-60 overflow-y-auto border rounded-lg p-4">
+                    {defaultQuestions.map((question, index) => (
+                      <div key={question.id} className="flex items-start space-x-3">
+                        <Checkbox
+                          id={`question-${question.id}`}
+                          checked={selectedQuestions.includes(question.id)}
+                          onCheckedChange={() => toggleQuestionSelection(question.id)}
+                        />
+                        <div className="grid gap-1.5 leading-none">
+                          <Label 
+                            htmlFor={`question-${question.id}`}
+                            className="text-sm font-normal cursor-pointer"
+                          >
+                            {index + 1}. {question.question_text}
+                          </Label>
+                          <p className="text-xs text-muted-foreground">
+                            극성: {question.polarity === 'positive' ? '긍정적' : '부정적'}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {defaultQuestions.length === 0 && (
+                      <div className="text-center py-4 text-muted-foreground">
+                        <p className="text-sm">기본 설문 문항이 없습니다.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 버튼들 */}
+                <div className="flex justify-end gap-3 pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowCustomDialog(false)}
+                    disabled={loading}
+                  >
+                    취소
+                  </Button>
+                  <Button
+                    onClick={handleCreateSurvey}
+                    disabled={loading || selectedQuestions.length === 0}
+                  >
+                    {loading ? "생성 중..." : "설문 생성"}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
         
         <div className="space-y-3">
