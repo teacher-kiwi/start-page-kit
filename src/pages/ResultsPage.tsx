@@ -247,9 +247,9 @@ const ResultsPage = () => {
           <h1 className="text-2xl font-bold text-gray-800">설문 결과</h1>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* 왼쪽: 학생 정보 */}
-          <div className="lg:col-span-1">
+        <div className="flex gap-6">
+          {/* 왼쪽: 학생 정보 (작은 너비) */}
+          <div className="w-80 flex-shrink-0">
             <Card className="p-6">
               <h2 className="text-lg font-semibold mb-4 border-l-4 border-orange-400 pl-3">
                 학생정보
@@ -293,8 +293,8 @@ const ResultsPage = () => {
             </Card>
           </div>
 
-          {/* 오른쪽: 결과 */}
-          <div className="lg:col-span-2">
+          {/* 오른쪽: 결과 (큰 너비) */}
+          <div className="flex-1">
             <Card className="p-6">
               <h2 className="text-lg font-semibold mb-6">결과</h2>
               
