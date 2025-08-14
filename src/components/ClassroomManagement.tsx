@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client"
 import { useToast } from "@/hooks/use-toast"
 import { resizeImageToLimit, formatFileSize } from "@/lib/image-utils"
 
-// 기본 학생 이미지들 경로
+// 기본 학생 이미지들 경로 (총 20개)
 const DEFAULT_STUDENT_IMAGES = [
   "/lovable-uploads/ed457838-0d8a-4f1a-bc74-98c7ce53c1c9.png",
   "/lovable-uploads/a8a749d9-c793-4305-aa4b-3bd5a3d925eb.png",
@@ -20,7 +20,17 @@ const DEFAULT_STUDENT_IMAGES = [
   "/lovable-uploads/8cc46e23-b190-4919-a1a5-63c3c36d4083.png",
   "/lovable-uploads/7f22a501-24f9-4312-967e-3ed29c51eca5.png",
   "/lovable-uploads/6f22058a-10c2-4e8b-9b33-ecf42b4af4a8.png",
-  "/lovable-uploads/f5a1267b-129a-4dac-885f-13853cc33c8c.png"
+  "/lovable-uploads/f5a1267b-129a-4dac-885f-13853cc33c8c.png",
+  "/lovable-uploads/a62e5fcb-1d43-4a1c-be9b-e36dbfa9cf48.png",
+  "/lovable-uploads/a957580d-33cc-4d71-8f52-e36e3cd9daf8.png",
+  "/lovable-uploads/a2c6e216-3f31-49c2-b867-276df250d480.png",
+  "/lovable-uploads/dc8cf495-f60b-4404-b167-fadae67fe18e.png",
+  "/lovable-uploads/f2faf09c-817e-43fa-b69a-063eeb181dd2.png",
+  "/lovable-uploads/1f134d59-547d-4a6a-ab3d-6f28a1697cf6.png",
+  "/lovable-uploads/55db2873-33ef-48e5-a869-7ba39ea34a04.png",
+  "/lovable-uploads/76a4419e-4b6f-4409-9871-81413e760fde.png",
+  "/lovable-uploads/43807208-3e96-44e4-b42c-3615cb111af2.png",
+  "/lovable-uploads/2cf4ef75-f44f-4ba7-9c58-6d087df36625.png"
 ]
 
 // 랜덤 기본 이미지 선택 함수
