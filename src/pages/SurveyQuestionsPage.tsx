@@ -150,7 +150,8 @@ const SurveyQuestionsPage = () => {
 
       // 1. relationship_responses 테이블에 응답 정보 저장
       const responsesToSave = finalResponses.map(response => ({
-        survey_question_id: response.question_id, // survey_questions 테이블의 ID 사용
+        survey_id: null, // 현재는 설문 ID가 없으므로 null로 설정
+        survey_question_id: null, // 현재는 survey_questions가 아닌 직접 questions를 사용
         respondent_id: respondentId
       }))
 
