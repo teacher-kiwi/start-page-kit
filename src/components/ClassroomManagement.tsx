@@ -9,20 +9,18 @@ import { supabase } from "@/integrations/supabase/client"
 import { useToast } from "@/hooks/use-toast"
 import { resizeImageToLimit, formatFileSize } from "@/lib/image-utils"
 
-// 기본 학생 이미지들 import
-import defaultStudent1 from "@/assets/default-student-1.png"
-import defaultStudent2 from "@/assets/default-student-2.png"
-import defaultStudent3 from "@/assets/default-student-3.png"
-import defaultStudent4 from "@/assets/default-student-4.png"
-import defaultStudent5 from "@/assets/default-student-5.png"
-
-// 기본 이미지 배열
+// 기본 학생 이미지들 경로
 const DEFAULT_STUDENT_IMAGES = [
-  defaultStudent1,
-  defaultStudent2,
-  defaultStudent3,
-  defaultStudent4,
-  defaultStudent5
+  "/lovable-uploads/ed457838-0d8a-4f1a-bc74-98c7ce53c1c9.png",
+  "/lovable-uploads/a8a749d9-c793-4305-aa4b-3bd5a3d925eb.png",
+  "/lovable-uploads/a6b5015f-70e0-412f-8542-b1071e000d3d.png",
+  "/lovable-uploads/7f93bc37-8f4d-48e6-b0ab-e5a770e4807d.png",
+  "/lovable-uploads/17298cea-d7e3-4744-b014-6c1507b6a087.png",
+  "/lovable-uploads/7692b587-7308-4398-9e11-97563834fdda.png",
+  "/lovable-uploads/8cc46e23-b190-4919-a1a5-63c3c36d4083.png",
+  "/lovable-uploads/7f22a501-24f9-4312-967e-3ed29c51eca5.png",
+  "/lovable-uploads/6f22058a-10c2-4e8b-9b33-ecf42b4af4a8.png",
+  "/lovable-uploads/f5a1267b-129a-4dac-885f-13853cc33c8c.png"
 ]
 
 // 랜덤 기본 이미지 선택 함수
