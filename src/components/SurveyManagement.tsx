@@ -541,7 +541,7 @@ export const SurveyManagement = ({
                   </Button>
                 </div>
               </div>) : <div className="text-center py-8 text-muted-foreground">
-              <p className="text-sm">회차 추가 버튼을 눌러 설문 회차를 추가하세요</p>
+              <p className="text-sm">설문 추가 버튼을 눌러 설문을 추가하세요.</p>
             </div>}
         </div>
       </div>
