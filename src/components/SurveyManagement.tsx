@@ -96,15 +96,6 @@ export const SurveyManagement = ({
   }
 
   const handleCreateSurvey = async () => {
-    if (!surveyTitle.trim()) {
-      toast({
-        title: "입력 오류",
-        description: "설문 제목을 입력해주세요.",
-        variant: "destructive"
-      })
-      return
-    }
-
     if (selectedQuestionsWithWeights.length === 0 && customQuestions.length === 0) {
       toast({
         title: "입력 오류", 
@@ -120,7 +111,7 @@ export const SurveyManagement = ({
       // 현재는 로컬 상태만 업데이트
       const newRound = {
         id: Date.now().toString(),
-        name: surveyTitle,
+        name: `${surveyRounds.length + 1}차 설문`,
         date: new Date().toISOString().split('T')[0]
       }
       setSurveyRounds([...surveyRounds, newRound])
@@ -252,28 +243,18 @@ export const SurveyManagement = ({
               </DialogHeader>
               
               <div className="space-y-6 py-4">
-                {/* 설문 제목 입력 */}
-                <div className="space-y-2">
-                  <Label htmlFor="survey-title">설문 제목</Label>
-                  <Input
-                    id="survey-title"
-                    value={surveyTitle}
-                    onChange={(e) => setSurveyTitle(e.target.value)}
-                    placeholder="설문 제목을 입력하세요"
-                  />
-                </div>
-
                 {/* 문항 선택 */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <Label className="text-base font-semibold">기본 설문 문항 선택</Label>
+                    <Label className="text-base font-semibold">설문 문항 선택</Label>
                     <div className="text-sm text-muted-foreground">
-                      {selectedQuestionsWithWeights.length}/{defaultQuestions.length} 선택됨
+                      {selectedQuestionsWithWeights.length + customQuestions.length}/{defaultQuestions.length + customQuestions.length} 선택됨
                     </div>
                   </div>
                   
-                  <div className="space-y-3 max-h-60 overflow-y-auto border rounded-lg p-4">
-                    {defaultQuestions.map((question, index) => {
+                  <div className="space-y-3 max-h-96 overflow-y-auto border rounded-lg p-4">
+                    {/* 기본 문항들 */}
+                    {defaultQuestions.map((question) => {
                       const selectedQuestion = selectedQuestionsWithWeights.find(q => q.id === question.id)
                       const isSelected = !!selectedQuestion
                       
@@ -290,7 +271,7 @@ export const SurveyManagement = ({
                                 htmlFor={`question-${question.id}`}
                                 className="text-sm font-normal cursor-pointer"
                               >
-                                {index + 1}. {question.question_text}
+                                {question.question_text}
                               </Label>
                             </div>
                           </div>
@@ -311,67 +292,60 @@ export const SurveyManagement = ({
                         </div>
                       )
                     })}
+
+                    {/* 추가 문항들 */}
+                    {customQuestions.map((question, index) => (
+                      <div key={question.id} className="space-y-2 border-t pt-2">
+                        <div className="flex items-start justify-between">
+                          <Label className="text-sm flex-1 text-muted-foreground">
+                            {question.question_text}
+                          </Label>
+                          <Button
+                            onClick={() => removeCustomQuestion(index)}
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 w-6 p-0"
+                          >
+                            ×
+                          </Button>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <Label className="text-xs text-muted-foreground">점수:</Label>
+                          <Input
+                            type="number"
+                            value={question.weight}
+                            onChange={(e) => updateCustomQuestionWeight(index, Number(e.target.value))}
+                            className="w-20 h-8 text-xs"
+                            placeholder="1"
+                          />
+                          <span className="text-xs text-muted-foreground">(음수: 부정, 양수: 긍정)</span>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* 문항 추가 입력 */}
+                    <div className="border-t pt-4">
+                      <div className="flex gap-2">
+                        <Input
+                          value={customQuestion}
+                          onChange={(e) => setCustomQuestion(e.target.value)}
+                          placeholder="새로운 문항을 입력하세요"
+                          className="flex-1"
+                        />
+                        <Button
+                          onClick={addCustomQuestion}
+                          variant="outline"
+                          size="sm"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
                     
                     {defaultQuestions.length === 0 && (
                       <div className="text-center py-4 text-muted-foreground">
                         <p className="text-sm">기본 설문 문항이 없습니다.</p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 추가 문항 섹션 */}
-                  <div className="space-y-4 pt-4 border-t">
-                    <Label className="text-base font-semibold">추가 문항</Label>
-                    
-                    {/* 추가 문항 입력 */}
-                    <div className="flex gap-2">
-                      <Input
-                        value={customQuestion}
-                        onChange={(e) => setCustomQuestion(e.target.value)}
-                        placeholder="새로운 문항을 입력하세요"
-                        className="flex-1"
-                      />
-                      <Button
-                        onClick={addCustomQuestion}
-                        variant="outline"
-                        size="sm"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-
-                    {/* 추가된 문항 목록 */}
-                    {customQuestions.length > 0 && (
-                      <div className="space-y-2 max-h-40 overflow-y-auto border rounded-lg p-3">
-                        {customQuestions.map((question, index) => (
-                          <div key={question.id} className="space-y-2">
-                            <div className="flex items-start justify-between">
-                              <Label className="text-sm flex-1">
-                                {defaultQuestions.length + index + 1}. {question.question_text}
-                              </Label>
-                              <Button
-                                onClick={() => removeCustomQuestion(index)}
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 w-6 p-0"
-                              >
-                                ×
-                              </Button>
-                            </div>
-                            
-                            <div className="flex items-center gap-2">
-                              <Label className="text-xs text-muted-foreground">점수:</Label>
-                              <Input
-                                type="number"
-                                value={question.weight}
-                                onChange={(e) => updateCustomQuestionWeight(index, Number(e.target.value))}
-                                className="w-20 h-8 text-xs"
-                                placeholder="1"
-                              />
-                              <span className="text-xs text-muted-foreground">(음수: 부정, 양수: 긍정)</span>
-                            </div>
-                          </div>
-                        ))}
                       </div>
                     )}
                   </div>
