@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -27,14 +28,17 @@ export const QRCodeDialog = ({
   roundName
 }: QRCodeDialogProps) => {
   const [qrCodeUrl, setQrCodeUrl] = useState<string>("")
+  const [surveyUrl, setSurveyUrl] = useState<string>("")
+  const navigate = useNavigate()
 
   useEffect(() => {
     if (open && school && grade && classNumber && teacherName && roundId) {
       // 학생들이 접속할 설문지 URL 생성
-      const surveyUrl = `${window.location.origin}/survey?school=${encodeURIComponent(school)}&grade=${grade}&class=${classNumber}&teacher=${encodeURIComponent(teacherName)}&round=${roundId}`
+      const url = `${window.location.origin}/survey?school=${encodeURIComponent(school)}&grade=${grade}&class=${classNumber}&teacher=${encodeURIComponent(teacherName)}&round=${roundId}`
+      setSurveyUrl(url)
       
       // QR코드 생성
-      QRCode.toDataURL(surveyUrl, {
+      QRCode.toDataURL(url, {
         width: 300,
         margin: 2,
         color: {
@@ -60,6 +64,12 @@ export const QRCodeDialog = ({
     }
   }
 
+  const handleQRCodeClick = () => {
+    if (surveyUrl) {
+      window.open(surveyUrl, '_blank')
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
@@ -82,7 +92,11 @@ export const QRCodeDialog = ({
               {/* QR코드 */}
               <div className="flex justify-center">
                 {qrCodeUrl ? (
-                  <div className="p-4 bg-white rounded-xl shadow-sm border">
+                  <div 
+                    className="p-4 bg-white rounded-xl shadow-sm border cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={handleQRCodeClick}
+                    title="클릭하여 설문 페이지로 이동"
+                  >
                     <img 
                       src={qrCodeUrl} 
                       alt="설문지 QR코드" 
@@ -101,6 +115,7 @@ export const QRCodeDialog = ({
                 <h3 className="font-medium text-foreground mb-2">사용 방법:</h3>
                 <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
                   <li>학생들이 카메라로 QR코드를 스캔합니다</li>
+                  <li>또는 QR코드를 클릭하여 직접 이동할 수 있습니다</li>
                   <li>설문지 페이지가 자동으로 열립니다</li>
                   <li>학생들이 자신의 이름을 선택하여 설문에 참여합니다</li>
                 </ol>
