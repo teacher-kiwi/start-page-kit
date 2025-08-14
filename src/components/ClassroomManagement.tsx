@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card"
 import { KoreanInput } from "@/components/ui/korean-input"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Trash2, Plus, Upload, ChevronDown, ChevronRight, Settings } from "lucide-react"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { supabase } from "@/integrations/supabase/client"
 
 interface StudentInput {
@@ -63,6 +64,36 @@ export const ClassroomManagement = ({
 
   const removeStudentInput = (id: string) => {
     setStudentInputs(studentInputs.filter(input => input.id !== id))
+  }
+
+  const handleDeleteStudent = async (studentInput: StudentInput) => {
+    if (!studentInput.student_id) {
+      // 아직 저장되지 않은 학생은 UI에서만 제거
+      removeStudentInput(studentInput.id)
+      return
+    }
+
+    try {
+      // 데이터베이스에서 학생 삭제 (관련 설문 응답들은 CASCADE로 자동 삭제됨)
+      const { error } = await supabase
+        .from('students')
+        .delete()
+        .eq('id', studentInput.student_id)
+
+      if (error) {
+        console.error('Error deleting student:', error)
+        alert('학생 삭제 중 오류가 발생했습니다.')
+        return
+      }
+
+      // 성공 시 데이터 새로고침
+      await loadClassroomData(teacherName)
+      alert('학생이 삭제되었습니다. 관련된 모든 설문 응답도 함께 삭제되었습니다.')
+
+    } catch (error) {
+      console.error('Error deleting student:', error)
+      alert('학생 삭제 중 오류가 발생했습니다.')
+    }
   }
 
   const updateStudentName = (id: string, name: string) => {
@@ -472,12 +503,38 @@ export const ClassroomManagement = ({
                     </div>
                   </div>
                   
-                  <button
-                    onClick={() => removeStudentInput(studentInput.id)}
-                    className="text-muted-foreground hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <button className="text-muted-foreground hover:text-destructive">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>학생 삭제</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          {studentInput.name || '이 학생'}을(를) 삭제하시겠습니까?
+                          {studentInput.student_id && (
+                            <>
+                              <br />
+                              <strong className="text-destructive">
+                                주의: 이 학생과 관련된 모든 설문 응답 데이터가 함께 삭제됩니다.
+                              </strong>
+                            </>
+                          )}
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>취소</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleDeleteStudent(studentInput)}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          삭제
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               ))}
               
