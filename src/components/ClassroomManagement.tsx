@@ -7,6 +7,7 @@ import { Trash2, Plus, Upload, ChevronDown, ChevronRight, Settings } from "lucid
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { supabase } from "@/integrations/supabase/client"
 import { useToast } from "@/hooks/use-toast"
+import { resizeImageToLimit, formatFileSize } from "@/lib/image-utils"
 
 interface StudentInput {
   id: string
@@ -136,18 +137,60 @@ export const ClassroomManagement = ({
   const updateStudentImage = async (id: string, file: File | null) => {
     if (file) {
       try {
+        // 이미지 파일인지 확인
+        if (!file.type.startsWith('image/')) {
+          toast({
+            title: "파일 형식 오류",
+            description: "이미지 파일만 업로드할 수 있습니다.",
+            variant: "destructive",
+          })
+          return
+        }
+
+        // 파일 크기 확인 및 리사이징
+        console.log(`원본 파일 크기: ${formatFileSize(file.size)}`)
+        
+        let processedFile = file
+        if (file.size > 1024 * 1024) { // 1MB 초과시
+          toast({
+            title: "이미지 압축 중",
+            description: `파일이 너무 큽니다 (${formatFileSize(file.size)}). 압축 중...`,
+          })
+          
+          try {
+            processedFile = await resizeImageToLimit(file)
+            console.log(`압축 후 파일 크기: ${formatFileSize(processedFile.size)}`)
+            
+            toast({
+              title: "이미지 압축 완료",
+              description: `${formatFileSize(file.size)} → ${formatFileSize(processedFile.size)}`,
+            })
+          } catch (error) {
+            toast({
+              title: "이미지 압축 실패",
+              description: "이미지를 압축하는 중 오류가 발생했습니다.",
+              variant: "destructive",
+            })
+            return
+          }
+        }
+
         // 파일 이름을 고유하게 만들기
-        const fileExt = file.name.split('.').pop()
+        const fileExt = processedFile.name.split('.').pop()
         const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`
         
         // Supabase Storage에 업로드
         const { data, error } = await supabase.storage
           .from('images')
-          .upload(fileName, file)
+          .upload(fileName, processedFile)
 
         if (error) {
           console.error('Error uploading image:', error)
-          alert('이미지 업로드 중 오류가 발생했습니다.')
+          toast({
+            title: "업로드 실패",
+            description: "이미지 업로드 중 오류가 발생했습니다.",
+            variant: "destructive",
+          })
           return
         }
 
@@ -158,11 +201,20 @@ export const ClassroomManagement = ({
 
         // studentInputs 상태 업데이트 (URL과 파일 모두 저장)
         setStudentInputs(studentInputs.map(input => 
-          input.id === id ? { ...input, image: file, imageUrl: publicUrl } : input
+          input.id === id ? { ...input, image: processedFile, imageUrl: publicUrl } : input
         ))
+
+        toast({
+          title: "이미지 업로드 성공",
+          description: "학생 사진이 업로드되었습니다.",
+        })
       } catch (error) {
         console.error('Error handling image upload:', error)
-        alert('이미지 처리 중 오류가 발생했습니다.')
+        toast({
+          title: "업로드 오류",
+          description: "이미지 처리 중 오류가 발생했습니다.",
+          variant: "destructive",
+        })
       }
     } else {
       setStudentInputs(studentInputs.map(input => 
