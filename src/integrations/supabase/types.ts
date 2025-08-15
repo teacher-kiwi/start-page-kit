@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "13.0.4"
@@ -377,10 +377,10 @@ export type Database = {
       match_documents: {
         Args: { filter: Json; match_count: number; query_embedding: string }
         Returns: {
-          id: string
           content: string
-          metadata: Json
           embedding: string
+          id: string
+          metadata: Json
           similarity: number
         }[]
       }
