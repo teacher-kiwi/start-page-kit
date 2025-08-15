@@ -310,10 +310,6 @@ export type Database = {
         Args: { "": string } | { "": unknown }
         Returns: unknown
       }
-      get_current_teacher_name: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
       get_survey_id_by_token: {
         Args: { survey_token: string }
         Returns: string
