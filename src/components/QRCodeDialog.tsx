@@ -14,6 +14,7 @@ interface QRCodeDialogProps {
   teacherName: string;
   roundId: string;
   roundName: string;
+  token?: string;
 }
 export const QRCodeDialog = ({
   open,
@@ -23,15 +24,19 @@ export const QRCodeDialog = ({
   classNumber,
   teacherName,
   roundId,
-  roundName
+  roundName,
+  token
 }: QRCodeDialogProps) => {
   const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
   const [surveyUrl, setSurveyUrl] = useState<string>("");
   const navigate = useNavigate();
   useEffect(() => {
     if (open && school && grade && classNumber && teacherName && roundId) {
-      // 학생들이 접속할 설문지 URL 생성
-      const url = `${window.location.origin}/survey?school=${encodeURIComponent(school)}&grade=${grade}&class=${classNumber}&teacher=${encodeURIComponent(teacherName)}&round=${roundId}`;
+      // 토큰이 있으면 토큰 기반 URL, 없으면 기존 방식 URL
+      const url = token 
+        ? `${window.location.origin}/survey?token=${token}`
+        : `${window.location.origin}/survey?school=${encodeURIComponent(school)}&grade=${grade}&class=${classNumber}&teacher=${encodeURIComponent(teacherName)}&round=${roundId}`;
+      
       setSurveyUrl(url);
 
       // QR코드 생성
@@ -48,7 +53,7 @@ export const QRCodeDialog = ({
         console.error('QR코드 생성 오류:', err);
       });
     }
-  }, [open, school, grade, classNumber, teacherName, roundId]);
+  }, [open, school, grade, classNumber, teacherName, roundId, token]);
   const handleDownload = () => {
     if (qrCodeUrl) {
       const link = document.createElement('a');

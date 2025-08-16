@@ -45,6 +45,7 @@ export const SurveyManagement = ({
   const [selectedRoundForQR, setSelectedRoundForQR] = useState<{
     id: string;
     name: string;
+    token?: string;
   } | null>(null);
 
   // 설문 커스텀 관련 상태
@@ -348,12 +349,37 @@ export const SurveyManagement = ({
     // 결과 페이지로 이동
     navigate('/results');
   };
-  const showQRCode = (roundId: string, roundName: string) => {
-    setSelectedRoundForQR({
-      id: roundId,
-      name: roundName
-    });
-    setQrDialogOpen(true);
+  const showQRCode = async (roundId: string, roundName: string) => {
+    try {
+      // 토큰 재발급
+      const { data, error } = await supabase.functions.invoke('create-survey-token', {
+        body: { surveyId: roundId }
+      });
+
+      if (error) {
+        console.error('토큰 생성 오류:', error);
+        toast({
+          title: "오류",
+          description: "QR코드 생성 중 오류가 발생했습니다.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setSelectedRoundForQR({
+        id: roundId,
+        name: roundName,
+        token: data.token // 새로 발급받은 토큰 추가
+      });
+      setQrDialogOpen(true);
+    } catch (error) {
+      console.error('QR코드 생성 오류:', error);
+      toast({
+        title: "오류", 
+        description: "QR코드 생성 중 오류가 발생했습니다.",
+        variant: "destructive",
+      });
+    }
   };
   const getQRCodeURL = () => {
     if (!selectedRoundForQR) return "";
@@ -550,6 +576,7 @@ export const SurveyManagement = ({
           teacherName={teacherName}
           roundId={selectedRoundForQR.id}
           roundName={selectedRoundForQR.name}
+          token={selectedRoundForQR.token}
         />
       )}
     </Card>;
