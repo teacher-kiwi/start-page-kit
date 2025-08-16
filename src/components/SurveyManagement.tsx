@@ -343,8 +343,9 @@ export const SurveyManagement = ({
     setCustomQuestions(prev => prev.filter((_, i) => i !== index));
   };
   const viewRoundResults = (roundId: string, roundName: string) => {
-    // 개별 회차 결과 페이지로 이동 (추후 구현)
-    console.log(`Viewing results for ${roundName}`);
+    // localStorage에 teacher_name 저장 (ResultsPage에서 필요)
+    localStorage.setItem("teacher_name", teacherName);
+    // 결과 페이지로 이동
     navigate('/results');
   };
   const showQRCode = (roundId: string, roundName: string) => {
