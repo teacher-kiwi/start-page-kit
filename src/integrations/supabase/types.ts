@@ -346,6 +346,10 @@ export type Database = {
         Args: { "": unknown }
         Returns: unknown
       }
+      is_classroom_accessible_by_token: {
+        Args: { classroom_id: string }
+        Returns: boolean
+      }
       is_token_valid: {
         Args: { survey_token: string }
         Returns: boolean
@@ -391,6 +395,10 @@ export type Database = {
       sparsevec_typmod_in: {
         Args: { "": unknown[] }
         Returns: number
+      }
+      user_owns_classroom: {
+        Args: { classroom_id: string }
+        Returns: boolean
       }
       vector_avg: {
         Args: { "": number[] }
