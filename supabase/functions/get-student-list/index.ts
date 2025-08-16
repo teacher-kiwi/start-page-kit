@@ -27,10 +27,21 @@ serve(async (req) => {
       );
     }
 
-    // First verify the token and get survey info
+    // First verify the token and get survey info with classroom details
     const { data: surveyData, error: surveyError } = await supabase
       .from('surveys')
-      .select('id, classroom_id, created_at')
+      .select(`
+        id, 
+        classroom_id, 
+        created_at,
+        classrooms!inner (
+          id,
+          school_name,
+          grade,
+          class_number,
+          teacher_name
+        )
+      `)
       .eq('token', token)
       .gte('created_at', new Date(Date.now() - 30 * 60 * 1000).toISOString())
       .single();
@@ -60,7 +71,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         students: studentsData,
-        surveyId: surveyData.id 
+        surveyId: surveyData.id,
+        classroom: surveyData.classrooms
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

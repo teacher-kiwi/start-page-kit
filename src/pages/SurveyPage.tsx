@@ -14,22 +14,81 @@ interface Student {
 const SurveyPage = () => {
   const [students, setStudents] = useState<Student[]>([])
   const [loading, setLoading] = useState(true)
+  const [classroomInfo, setClassroomInfo] = useState<{
+    school: string;
+    grade: string;
+    classNumber: string;
+    teacherName: string;
+  } | null>(null)
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   
+  // URL 파라미터 추출
   const school = searchParams.get("school")
   const grade = searchParams.get("grade") 
   const classNumber = searchParams.get("class")
   const teacherName = searchParams.get("teacher")
+  const token = searchParams.get("token")
 
   useEffect(() => {
-    if (!school || !grade || !classNumber || !teacherName) {
+    if (token) {
+      // 토큰 기반 로딩
+      loadStudentsWithToken()
+    } else if (school && grade && classNumber && teacherName) {
+      // 기존 방식 로딩
+      loadStudents()
+    } else {
       navigate("/")
-      return
     }
+  }, [school, grade, classNumber, teacherName, token, navigate])
 
-    loadStudents()
-  }, [school, grade, classNumber, teacherName, navigate])
+  const loadStudentsWithToken = async () => {
+    try {
+      setLoading(true)
+      
+      // 토큰 검증
+      const { data: tokenData, error: tokenError } = await supabase.functions.invoke('verify-token', {
+        body: { token }
+      });
+
+      if (tokenError || !tokenData?.valid) {
+        console.error('Token verification failed:', tokenError);
+        alert('유효하지 않은 접근입니다. QR코드를 다시 스캔해주세요.');
+        navigate("/");
+        return;
+      }
+
+      // 토큰으로 학생 목록 가져오기
+      const { data: studentsData, error: studentsError } = await supabase.functions.invoke('get-student-list', {
+        body: { token }
+      });
+
+      if (studentsError || !studentsData?.students) {
+        console.error('Error loading students:', studentsError);
+        alert('학생 정보를 불러오는 중 오류가 발생했습니다.');
+        return;
+      }
+
+      setStudents(studentsData.students || []);
+      
+      // 학급 정보 설정
+      if (studentsData.classroom) {
+        setClassroomInfo({
+          school: studentsData.classroom.school_name,
+          grade: studentsData.classroom.grade.toString(),
+          classNumber: studentsData.classroom.class_number.toString(),
+          teacherName: studentsData.classroom.teacher_name
+        });
+      }
+      
+    } catch (error) {
+      console.error('Error:', error)
+      alert('데이터를 불러오는 중 오류가 발생했습니다.')
+      navigate("/");
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const loadStudents = async () => {
     try {
@@ -65,6 +124,14 @@ const SurveyPage = () => {
       }
 
       setStudents(studentsData || [])
+      
+      // 기존 방식에서는 파라미터로 받은 정보 사용
+      setClassroomInfo({
+        school: school!,
+        grade: grade!,
+        classNumber: classNumber!,
+        teacherName: teacherName!
+      });
     } catch (error) {
       console.error('Error:', error)
       alert('데이터를 불러오는 중 오류가 발생했습니다.')
@@ -74,18 +141,27 @@ const SurveyPage = () => {
   }
 
   const handleStudentSelect = (student: Student) => {
-    // 로컬스토리지에 학생 ID 저장
+    // 로컬스토리지에 학생 ID와 토큰 저장
     localStorage.setItem('selected_student_id', student.id)
+    if (token) {
+      localStorage.setItem('survey_token', token)
+    }
     
     // 학생 확인 페이지로 이동
-    const params = new URLSearchParams({
-      school: school!,
-      grade: grade!,
-      class: classNumber!,
-      teacher: teacherName!,
-      studentId: student.id
-    })
-    navigate(`/student-confirm?${params.toString()}`)
+    if (token) {
+      // 토큰 기반 이동
+      navigate(`/student-confirm?token=${token}&studentId=${student.id}`)
+    } else {
+      // 기존 방식 이동
+      const params = new URLSearchParams({
+        school: school!,
+        grade: grade!,
+        class: classNumber!,
+        teacher: teacherName!,
+        studentId: student.id
+      })
+      navigate(`/student-confirm?${params.toString()}`)
+    }
   }
 
   if (loading) {
@@ -123,7 +199,10 @@ const SurveyPage = () => {
             <span className="text-4xl">🌻</span>
           </div>
           <p className="text-lg text-gray-600">
-            {school} {grade}학년 {classNumber}반 ({teacherName} 선생님)
+            {classroomInfo ? 
+              `${classroomInfo.school} ${classroomInfo.grade}학년 ${classroomInfo.classNumber}반 (${classroomInfo.teacherName} 선생님)` :
+              '설문 참여하기'
+            }
           </p>
         </div>
 
