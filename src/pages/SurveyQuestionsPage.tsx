@@ -20,7 +20,6 @@ interface Student {
 interface Response {
   question_id: string
   target_ids: string[]
-  answer_value: string
 }
 
 const SurveyQuestionsPage = () => {
@@ -51,27 +50,24 @@ const SurveyQuestionsPage = () => {
   const loadDataWithToken = async (token: string) => {
     try {
       setLoading(true)
-  
-      const { data, error } = await supabase.functions.invoke("get-survey-data", {
-        body: { token },
-      })
-  
-      if (error || !data || (data as any).error) {
-        console.error("Survey data loading failed:", error || (data as any)?.error)
+      const { data: surveyData, error: surveyError } = await supabase.functions.invoke(
+        "get-survey-data",
+        { body: { token } }
+      )
+
+      if (surveyError || !surveyData || surveyData.error) {
+        console.error("Survey data loading failed:", surveyError || surveyData?.error)
         alert("유효하지 않은 설문입니다.")
         navigate("/")
         return
       }
-  
-      // 응답자 제외
-      const filteredStudents = (data as any).students.filter(
-        (s: any) => s.id !== respondentId
-      )
-  
-      setQuestions((data as any).questions || [])
+
+      const filteredStudents = surveyData.students.filter((s: any) => s.id !== respondentId)
+
+      setQuestions(surveyData.questions || [])
       setStudents(filteredStudents || [])
-    } catch (err) {
-      console.error("Error:", err)
+    } catch (error) {
+      console.error("Error:", error)
       alert("데이터를 불러오는 중 오류가 발생했습니다.")
     } finally {
       setLoading(false)
@@ -91,7 +87,6 @@ const SurveyQuestionsPage = () => {
     const newResponse: Response = {
       question_id: questions[currentQuestionIndex].id,
       target_ids: [selectedStudentId],
-      answer_value: "selected",
     }
 
     const updatedResponses = [...responses]
