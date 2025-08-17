@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useLocation } from "react-router-dom"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { supabase } from "@/integrations/supabase/client"
@@ -18,7 +18,7 @@ interface Student {
 }
 
 interface Response {
-  survey_question_id: string
+  question_id: string
   target_ids: string[]
   answer_value: string
 }
@@ -32,96 +32,44 @@ const SurveyQuestionsPage = () => {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const navigate = useNavigate()
+  const location = useLocation()
 
-  const respondentId = localStorage.getItem('selected_student_id')
-  const surveyToken = localStorage.getItem('survey_token')
+  // ✅ URL 쿼리스트링에서 token 가져오기
+  const searchParams = new URLSearchParams(location.search)
+  const surveyToken = searchParams.get("token")
+  const respondentId = localStorage.getItem("selected_student_id")
 
   useEffect(() => {
-    if (!respondentId) {
-      alert('학생 정보가 없습니다.')
-      navigate('/')
+    if (!respondentId || !surveyToken) {
+      alert("유효하지 않은 접근입니다.")
+      navigate("/")
       return
     }
-
-    if (surveyToken) {
-      loadDataWithToken()
-    } else {
-      loadData()
-    }
+    loadDataWithToken(surveyToken)
   }, [respondentId, surveyToken, navigate])
 
-  const loadDataWithToken = async () => {
+  const loadDataWithToken = async (token: string) => {
     try {
       setLoading(true)
-      
-      const { data: surveyData, error: surveyError } = await supabase.functions.invoke('get-survey-data', {
-        body: { token: surveyToken }
-      });
+      const { data: surveyData, error: surveyError } = await supabase.functions.invoke(
+        "get-survey-data",
+        { body: { token } }
+      )
 
       if (surveyError || !surveyData || surveyData.error) {
-        console.error('Survey data loading failed:', surveyError || surveyData?.error);
-        alert('유효하지 않은 접근입니다.');
-        navigate("/");
-        return;
+        console.error("Survey data loading failed:", surveyError || surveyData?.error)
+        alert("유효하지 않은 설문입니다.")
+        navigate("/")
+        return
       }
 
-      const filteredStudents = surveyData.students.filter((s: any) => s.id !== respondentId);
+      const filteredStudents = surveyData.students.filter((s: any) => s.id !== respondentId)
 
       setQuestions(surveyData.questions || [])
       setStudents(filteredStudents || [])
     } catch (error) {
-      console.error('Error:', error)
-      alert('데이터를 불러오는 중 오류가 발생했습니다.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const loadData = async () => {
-    try {
-      setLoading(true)
-      
-      const { data: questionsData, error: questionsError } = await supabase
-        .from('questions')
-        .select('id, question_text')
-        .order('created_at', { ascending: true })
-
-      if (questionsError) {
-        console.error('Error loading questions:', questionsError)
-        alert('문항을 불러오는 중 오류가 발생했습니다.')
-        return
-      }
-
-      const { data: respondentData, error: respondentError } = await supabase
-        .from('students')
-        .select('classroom_id')
-        .eq('id', respondentId)
-        .single()
-
-      if (respondentError || !respondentData) {
-        console.error('Error loading respondent:', respondentError)
-        alert('응답자 정보를 찾을 수 없습니다.')
-        return
-      }
-
-      const { data: studentsData, error: studentsError } = await supabase
-        .from('students')
-        .select('id, name, photo_url, student_number')
-        .eq('classroom_id', respondentData.classroom_id)
-        .neq('id', respondentId)
-        .order('student_number', { ascending: true })
-
-      if (studentsError) {
-        console.error('Error loading students:', studentsError)
-        alert('학생 목록을 불러오는 중 오류가 발생했습니다.')
-        return
-      }
-
-      setQuestions((questionsData as Question[]) || [])
-      setStudents(studentsData || [])
-    } catch (error) {
-      console.error('Error:', error)
-      alert('데이터를 불러오는 중 오류가 발생했습니다.')
+      console.error("Error:", error)
+      alert("데이터를 불러오는 중 오류가 발생했습니다.")
     } finally {
       setLoading(false)
     }
@@ -131,33 +79,31 @@ const SurveyQuestionsPage = () => {
     setSelectedStudentId(studentId)
   }
 
-
-
   const handleNext = () => {
     if (!selectedStudentId) {
-      alert('친구를 선택해주세요.')
+      alert("친구를 선택해주세요.")
       return
     }
-  
+
     const newResponse: Response = {
-      survey_question_id: questions[currentQuestionIndex].id,
+      question_id: questions[currentQuestionIndex].id,
       target_ids: [selectedStudentId],
-      answer_value: "selected"
+      answer_value: "selected",
     }
-  
+
     const updatedResponses = [...responses]
     const existingIndex = updatedResponses.findIndex(
-      r => r.survey_question_id === questions[currentQuestionIndex].id
+      (r) => r.question_id === questions[currentQuestionIndex].id
     )
-  
+
     if (existingIndex >= 0) {
       updatedResponses[existingIndex] = newResponse
     } else {
       updatedResponses.push(newResponse)
     }
-  
+
     setResponses(updatedResponses)
-  
+
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1)
       setSelectedStudentId("")
@@ -169,7 +115,9 @@ const SurveyQuestionsPage = () => {
   const handlePrevious = () => {
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex(currentQuestionIndex - 1)
-      const prevResponse = responses.find(r => r.question_id === questions[currentQuestionIndex - 1].id)
+      const prevResponse = responses.find(
+        (r) => r.question_id === questions[currentQuestionIndex - 1].id
+      )
       setSelectedStudentId(prevResponse?.target_ids?.[0] || "")
     }
   }
@@ -177,30 +125,26 @@ const SurveyQuestionsPage = () => {
   const submitResponses = async (finalResponses: Response[]) => {
     try {
       setSubmitting(true)
-  
-      if (surveyToken) {
-        const { data, error } = await supabase.functions.invoke('submit-survey-response', {
-          body: { 
-            token: surveyToken,
-            respondent_id: respondentId,
-            responses: finalResponses
-          }
-        })
-  
-        if (error || data?.error) {
-          console.error('Error submitting responses:', error || data.error)
-          alert('응답 제출 중 오류가 발생했습니다.')
-          return
-        }
-  
-        alert('설문이 완료되었습니다!')
-        localStorage.removeItem('selected_student_id')
-        localStorage.removeItem('survey_token')
-        navigate('/')
+      const { data, error } = await supabase.functions.invoke("submit-survey-response", {
+        body: {
+          token: surveyToken,
+          respondent_id: respondentId,
+          responses: finalResponses,
+        },
+      })
+
+      if (error || data?.error) {
+        console.error("Error submitting responses:", error || data?.error)
+        alert("응답 제출 중 오류가 발생했습니다.")
+        return
       }
+
+      alert("설문이 완료되었습니다!")
+      localStorage.removeItem("selected_student_id")
+      navigate("/")
     } catch (error) {
-      console.error('Error submitting responses:', error)
-      alert('응답 제출 중 오류가 발생했습니다.')
+      console.error("Error submitting responses:", error)
+      alert("응답 제출 중 오류가 발생했습니다.")
     } finally {
       setSubmitting(false)
     }
@@ -208,7 +152,7 @@ const SurveyQuestionsPage = () => {
 
   if (loading) {
     return (
-       <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
           <p className="text-muted-foreground">설문을 준비하는 중...</p>
@@ -222,9 +166,7 @@ const SurveyQuestionsPage = () => {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="p-8 text-center">
           <p className="text-lg text-muted-foreground mb-4">설문 문항이 없습니다.</p>
-          <Button onClick={() => navigate('/')}>
-            처음으로 돌아가기
-          </Button>
+          <Button onClick={() => navigate("/")}>처음으로 돌아가기</Button>
         </Card>
       </div>
     )
@@ -242,12 +184,10 @@ const SurveyQuestionsPage = () => {
             <span className="text-sm text-gray-600">
               {currentQuestionIndex + 1} / {questions.length}
             </span>
-            <span className="text-sm text-gray-600">
-              {Math.round(progress)}%
-            </span>
+            <span className="text-sm text-gray-600">{Math.round(progress)}%</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
-            <div 
+            <div
               className="bg-orange-400 h-2 rounded-full transition-all duration-300"
               style={{ width: `${progress}%` }}
             />
@@ -264,20 +204,20 @@ const SurveyQuestionsPage = () => {
         {/* 학생 선택 */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-4 mb-8">
           {students.map((student, index) => (
-            <Card 
+            <Card
               key={student.id}
               className={`p-4 cursor-pointer transition-all duration-200 ${
                 selectedStudentId === student.id
-                  ? 'border-4 border-orange-400 bg-orange-50 shadow-lg'
-                  : 'border-2 border-orange-200 bg-gradient-to-b from-yellow-100 to-orange-100 hover:border-orange-300'
+                  ? "border-4 border-orange-400 bg-orange-50 shadow-lg"
+                  : "border-2 border-orange-200 bg-gradient-to-b from-yellow-100 to-orange-100 hover:border-orange-300"
               }`}
               onClick={() => handleStudentSelect(student.id)}
             >
               <div className="text-center space-y-3">
                 <div className="w-20 h-24 mx-auto bg-gray-100 rounded-lg overflow-hidden border-2 border-white shadow-sm">
                   {student.photo_url ? (
-                    <img 
-                      src={student.photo_url} 
+                    <img
+                      src={student.photo_url}
                       alt={student.name}
                       className="w-full h-full object-cover"
                     />
@@ -312,16 +252,16 @@ const SurveyQuestionsPage = () => {
             disabled={!selectedStudentId || submitting}
             className="flex items-center gap-2 bg-orange-400 hover:bg-orange-500 text-white"
           >
-            {submitting ? (
-              '제출 중...'
-            ) : currentQuestionIndex === questions.length - 1 ? (
-              '완료'
-            ) : (
-              <>
-                다음
-                <ChevronRight className="h-4 w-4" />
-              </>
-            )}
+            {submitting
+              ? "제출 중..."
+              : currentQuestionIndex === questions.length - 1
+              ? "완료"
+              : (
+                <>
+                  다음
+                  <ChevronRight className="h-4 w-4" />
+                </>
+              )}
           </Button>
         </div>
       </div>
