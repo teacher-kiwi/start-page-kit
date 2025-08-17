@@ -8,89 +8,124 @@ const corsHeaders = {
 
 serve(async (req) => {
   // Handle CORS preflight requests
-  if (req.method === "OPTIONS") {
+  if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { token } = await req.json();
 
     if (!token) {
       return new Response(
-        JSON.stringify({ error: "Token is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: 'Token is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // 🔑 토큰 유효성 검증 (token_expires_at 기준)
-    const { data: survey, error } = await supabase
-      .from("surveys")
+    // ✅ survey 가져오기 (token_created_at 포함)
+    const { data: surveyData, error: surveyError } = await supabase
+      .from('surveys')
       .select(`
         id,
+        title,
         classroom_id,
-        survey_questions(
+        token_created_at,
+        classrooms!inner(
           id,
-          order_num,
-          weight,
-          questions(id, question_text)
-        ),
-        classrooms(
-          id,
-          students(
-            id,
-            name,
-            photo_url,
-            student_number
-          )
+          school_name,
+          grade,
+          class_number,
+          teacher_name
         )
       `)
-      .eq("token", token)
-      .gte("token_expires_at", new Date().toISOString())
+      .eq('token', token)
       .single();
 
-    if (error || !survey) {
-      console.error("Invalid or expired token:", error);
+    if (surveyError || !surveyData) {
+      console.error('Survey verification failed:', surveyError);
       return new Response(
-        JSON.stringify({ error: "Invalid or expired token", code: "TOKEN_EXPIRED" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: 'Invalid token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // 설문 문항 정리
-    const questions = (survey.survey_questions || []).map((sq: any) => ({
-      id: sq.id,
-      question_id: sq.questions.id,
-      question_text: sq.questions.question_text,
-      order_num: sq.order_num,
-      weight: sq.weight,
-    }));
+    // ✅ token_created_at 기반 만료 검증 (30분)
+    const createdAt = new Date(surveyData.token_created_at);
+    const expiresAt = new Date(createdAt.getTime() + 30 * 60 * 1000);
+    if (new Date() > expiresAt) {
+      return new Response(
+        JSON.stringify({ error: 'Expired token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
-    // 학생 목록 정리
-    const students = (survey.classrooms?.students || []).map((s: any) => ({
-      id: s.id,
-      name: s.name,
-      photo_url: s.photo_url,
-      student_number: s.student_number,
-    }));
+    // 학생 목록 조회
+    const { data: studentsData, error: studentsError } = await supabase
+      .from('students')
+      .select('id, name, photo_url, student_number')
+      .eq('classroom_id', surveyData.classroom_id)
+      .order('student_number', { ascending: true });
+
+    if (studentsError) {
+      console.error('Error loading students:', studentsError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to load students' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // 설문 문항 조회
+    const { data: questionsData, error: questionsError } = await supabase
+      .from('survey_questions')
+      .select(`
+        order_num,
+        questions!inner(
+          id,
+          question_text
+        )
+      `)
+      .eq('survey_id', surveyData.id)
+      .order('order_num', { ascending: true });
+
+    if (questionsError) {
+      console.error('Error loading questions:', questionsError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to load questions' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // 최종 응답 데이터 포맷
+    const response = {
+      surveyId: surveyData.id,
+      classroom: {
+        id: surveyData.classrooms.id,
+        school_name: surveyData.classrooms.school_name,
+        grade: surveyData.classrooms.grade,
+        class_number: surveyData.classrooms.class_number,
+        teacher_name: surveyData.classrooms.teacher_name
+      },
+      students: studentsData || [],
+      questions: questionsData?.map(sq => ({
+        id: sq.questions.id,
+        question_text: sq.questions.question_text
+      })) || []
+    };
 
     return new Response(
-      JSON.stringify({
-        survey_id: survey.id,
-        questions,
-        students,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify(response),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (err) {
-    console.error("Error in get-survey-data function:", err);
+  } catch (error) {
+    console.error('Error in get-survey-data function:', error);
     return new Response(
-      JSON.stringify({ error: "Internal server error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ error: 'Internal server error' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

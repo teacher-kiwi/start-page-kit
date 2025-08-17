@@ -7,7 +7,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -15,7 +14,6 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { token, respondent_id, responses } = await req.json();
@@ -27,22 +25,31 @@ serve(async (req) => {
       );
     }
 
-    // Verify token and get survey info
+    // ✅ 토큰 검증 (token_created_at 기반)
     const { data: surveyData, error: surveyError } = await supabase
       .from('surveys')
-      .select('id, classroom_id')
+      .select('id, classroom_id, token_created_at')
       .eq('token', token)
-      .gte('token_expires_at', new Date().toISOString())
       .single();
-    
+
     if (surveyError || !surveyData) {
       return new Response(
-        JSON.stringify({ error: 'Invalid or expired token', code: 'TOKEN_EXPIRED' }),
+        JSON.stringify({ error: 'Invalid token' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Verify respondent belongs to the same classroom
+    // 토큰 만료 시간 계산 (예: 30분)
+    const createdAt = new Date(surveyData.token_created_at);
+    const expiresAt = new Date(createdAt.getTime() + 30 * 60 * 1000);
+    if (new Date() > expiresAt) {
+      return new Response(
+        JSON.stringify({ error: 'Expired token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // ✅ 응답자 classroom 검증
     const { data: respondentData, error: respondentError } = await supabase
       .from('students')
       .select('classroom_id')
@@ -56,10 +63,10 @@ serve(async (req) => {
       );
     }
 
-    // Save responses to relationship_responses table
+    // ✅ 응답 저장
     const responsesToInsert = responses.map((response: any) => ({
       survey_id: surveyData.id,
-      respondent_id: respondent_id,
+      respondent_id,
       survey_question_id: response.question_id,
       answer_value: response.answer_value || null
     }));
@@ -77,15 +84,14 @@ serve(async (req) => {
       );
     }
 
-    // Save response targets for each response
+    // ✅ 대상자 저장
     const allTargetsToSave: any[] = [];
-    
     responses.forEach((response: any, responseIndex: number) => {
       if (response.target_ids && Array.isArray(response.target_ids)) {
         response.target_ids.forEach((target_id: string) => {
           allTargetsToSave.push({
             response_id: savedResponses[responseIndex].id,
-            target_id: target_id,
+            target_id,
             extra_value: 0
           });
         });
