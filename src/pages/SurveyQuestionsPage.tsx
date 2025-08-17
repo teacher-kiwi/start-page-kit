@@ -6,7 +6,8 @@ import { supabase } from "@/integrations/supabase/client"
 import { ChevronRight, ArrowLeft } from "lucide-react"
 
 interface Question {
-  id: string
+  survey_question_id: string   // ✅ survey_questions.id
+  question_id: string          // ✅ 원본 questions.id (혹시 필요할 때 대비)
   question_text: string
 }
 
@@ -18,7 +19,7 @@ interface Student {
 }
 
 interface Response {
-  question_id: string
+  survey_question_id: string   // ✅ FK 연결용
   target_ids: string[]
 }
 
@@ -50,24 +51,27 @@ const SurveyQuestionsPage = () => {
   const loadDataWithToken = async (token: string) => {
     try {
       setLoading(true)
-      const { data: surveyData, error: surveyError } = await supabase.functions.invoke(
-        "get-survey-data",
-        { body: { token } }
-      )
-
-      if (surveyError || !surveyData || surveyData.error) {
-        console.error("Survey data loading failed:", surveyError || surveyData?.error)
+  
+      const { data, error } = await supabase.functions.invoke("get-survey-data", {
+        body: { token },
+      })
+  
+      if (error || !data || (data as any).error) {
+        console.error("Survey data loading failed:", error || (data as any)?.error)
         alert("유효하지 않은 설문입니다.")
         navigate("/")
         return
       }
-
-      const filteredStudents = surveyData.students.filter((s: any) => s.id !== respondentId)
-
-      setQuestions(surveyData.questions || [])
+  
+      // 응답자 제외
+      const filteredStudents = (data as any).students.filter(
+        (s: any) => s.id !== respondentId
+      )
+  
+      setQuestions((data as any).questions || [])
       setStudents(filteredStudents || [])
-    } catch (error) {
-      console.error("Error:", error)
+    } catch (err) {
+      console.error("Error:", err)
       alert("데이터를 불러오는 중 오류가 발생했습니다.")
     } finally {
       setLoading(false)
@@ -84,14 +88,16 @@ const SurveyQuestionsPage = () => {
       return
     }
 
+    const currentQ = questions[currentQuestionIndex]
+
     const newResponse: Response = {
-      question_id: questions[currentQuestionIndex].id,
+      survey_question_id: currentQ.survey_question_id,   // ✅ survey_question_id 사용
       target_ids: [selectedStudentId],
     }
 
     const updatedResponses = [...responses]
     const existingIndex = updatedResponses.findIndex(
-      (r) => r.question_id === questions[currentQuestionIndex].id
+      (r) => r.survey_question_id === currentQ.survey_question_id
     )
 
     if (existingIndex >= 0) {
@@ -113,8 +119,9 @@ const SurveyQuestionsPage = () => {
   const handlePrevious = () => {
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex(currentQuestionIndex - 1)
+      const prevQ = questions[currentQuestionIndex - 1]
       const prevResponse = responses.find(
-        (r) => r.question_id === questions[currentQuestionIndex - 1].id
+        (r) => r.survey_question_id === prevQ.survey_question_id
       )
       setSelectedStudentId(prevResponse?.target_ids?.[0] || "")
     }

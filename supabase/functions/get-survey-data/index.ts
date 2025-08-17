@@ -82,6 +82,7 @@ serve(async (req) => {
     const { data: questionsData, error: questionsError } = await supabase
       .from('survey_questions')
       .select(`
+        id,
         order_num,
         questions!inner(
           id,
@@ -90,7 +91,7 @@ serve(async (req) => {
       `)
       .eq('survey_id', surveyData.id)
       .order('order_num', { ascending: true });
-
+    
     if (questionsError) {
       console.error('Error loading questions:', questionsError);
       return new Response(
@@ -98,7 +99,7 @@ serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
+    
     // 최종 응답 데이터 포맷
     const response = {
       surveyId: surveyData.id,
@@ -111,7 +112,8 @@ serve(async (req) => {
       },
       students: studentsData || [],
       questions: questionsData?.map(sq => ({
-        id: sq.questions.id,
+        survey_question_id: sq.id,
+        question_id: sq.questions.id,
         question_text: sq.questions.question_text
       })) || []
     };

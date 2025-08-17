@@ -67,9 +67,9 @@ serve(async (req) => {
     const responsesToInsert = responses.map((response: any) => ({
       survey_id: surveyData.id,
       respondent_id,
-      survey_question_id: response.question_id
+      survey_question_id: response.survey_question_id,
     }));
-
+    
     const { data: savedResponses, error: responseError } = await supabase
       .from('relationship_responses')
       .insert(responsesToInsert)
