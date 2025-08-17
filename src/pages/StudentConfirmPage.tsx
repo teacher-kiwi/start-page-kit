@@ -45,21 +45,10 @@ const StudentConfirmPage = () => {
     try {
       setLoading(true)
       
-      // 토큰 검증
-      const { data: tokenData, error: tokenError } = await supabase.functions.invoke('verify-token', {
-        body: { token }
-      });
-
-      if (tokenError || !tokenData?.valid) {
-        console.error('Token verification failed:', tokenError);
-        alert('유효하지 않은 접근입니다. QR코드를 다시 스캔해주세요.');
-        navigate("/");
-        return;
-      }
-
-      // Edge function으로 학생 정보 가져오기
+      // Edge function으로 학생 정보 가져오기 (토큰 검증 + 학생 목록 반환)
       const { data: studentListData, error: studentError } = await supabase.functions.invoke('get-student-list', {
-        body: { token }
+        body: { token },
+        headers: { 'Content-Type': 'application/json' }
       });
 
       if (studentError || !studentListData?.students) {
