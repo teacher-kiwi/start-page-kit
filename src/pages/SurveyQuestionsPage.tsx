@@ -51,24 +51,27 @@ const SurveyQuestionsPage = () => {
   const loadDataWithToken = async (token: string) => {
     try {
       setLoading(true)
-      const { data: surveyData, error: surveyError } = await supabase.functions.invoke(
-        "get-survey-data",
-        { body: { token } }
-      )
-
-      if (surveyError || !surveyData || surveyData.error) {
-        console.error("Survey data loading failed:", surveyError || surveyData?.error)
+  
+      const { data, error } = await supabase.functions.invoke("get-survey-data", {
+        body: { token },
+      })
+  
+      if (error || !data || (data as any).error) {
+        console.error("Survey data loading failed:", error || (data as any)?.error)
         alert("유효하지 않은 설문입니다.")
         navigate("/")
         return
       }
-
-      const filteredStudents = surveyData.students.filter((s: any) => s.id !== respondentId)
-
-      setQuestions(surveyData.questions || [])
+  
+      // 응답자 제외
+      const filteredStudents = (data as any).students.filter(
+        (s: any) => s.id !== respondentId
+      )
+  
+      setQuestions((data as any).questions || [])
       setStudents(filteredStudents || [])
-    } catch (error) {
-      console.error("Error:", error)
+    } catch (err) {
+      console.error("Error:", err)
       alert("데이터를 불러오는 중 오류가 발생했습니다.")
     } finally {
       setLoading(false)
