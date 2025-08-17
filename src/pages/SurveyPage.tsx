@@ -46,38 +46,27 @@ const SurveyPage = () => {
     try {
       setLoading(true)
       
-      // 토큰 검증
-      const { data: tokenData, error: tokenError } = await supabase.functions.invoke('verify-token', {
+      // 새로운 get-survey-data Edge Function 사용
+      const { data: surveyData, error: surveyError } = await supabase.functions.invoke('get-survey-data', {
         body: { token }
       });
 
-      if (tokenError || !tokenData?.valid) {
-        console.error('Token verification failed:', tokenError);
+      if (surveyError || !surveyData) {
+        console.error('Survey data loading failed:', surveyError);
         alert('유효하지 않은 접근입니다. QR코드를 다시 스캔해주세요.');
         navigate("/");
         return;
       }
 
-      // 토큰으로 학생 목록 가져오기
-      const { data: studentsData, error: studentsError } = await supabase.functions.invoke('get-student-list', {
-        body: { token }
-      });
-
-      if (studentsError || !studentsData?.students) {
-        console.error('Error loading students:', studentsError);
-        alert('학생 정보를 불러오는 중 오류가 발생했습니다.');
-        return;
-      }
-
-      setStudents(studentsData.students || []);
+      setStudents(surveyData.students || []);
       
       // 학급 정보 설정
-      if (studentsData.classroom) {
+      if (surveyData.classroom) {
         setClassroomInfo({
-          school: studentsData.classroom.school_name,
-          grade: studentsData.classroom.grade.toString(),
-          classNumber: studentsData.classroom.class_number.toString(),
-          teacherName: studentsData.classroom.teacher_name
+          school: surveyData.classroom.school_name,
+          grade: surveyData.classroom.grade.toString(),
+          classNumber: surveyData.classroom.class_number.toString(),
+          teacherName: surveyData.classroom.teacher_name
         });
       }
       

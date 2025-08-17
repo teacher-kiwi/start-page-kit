@@ -14,6 +14,12 @@ interface Student {
 
 const StudentConfirmPage = () => {
   const [student, setStudent] = useState<Student | null>(null)
+  const [classroomInfo, setClassroomInfo] = useState<{
+    school: string;
+    grade: string;
+    classNumber: string;
+    teacherName: string;
+  } | null>(null)
   const [loading, setLoading] = useState(true)
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
@@ -45,20 +51,20 @@ const StudentConfirmPage = () => {
     try {
       setLoading(true)
       
-      // Edge function으로 학생 정보 가져오기 (토큰 검증 + 학생 목록 반환)
-      const { data: studentListData, error: studentError } = await supabase.functions.invoke('get-student-list', {
-        body: { token },
-        headers: { 'Content-Type': 'application/json' }
+      // 새로운 get-survey-data Edge Function 사용
+      const { data: surveyData, error: surveyError } = await supabase.functions.invoke('get-survey-data', {
+        body: { token }
       });
 
-      if (studentError || !studentListData?.students) {
-        console.error('Error loading students:', studentError);
-        alert('학생 정보를 불러오는 중 오류가 발생했습니다.');
+      if (surveyError || !surveyData) {
+        console.error('Survey data loading failed:', surveyError);
+        alert('유효하지 않은 접근입니다.');
+        navigate(-1);
         return;
       }
 
       // 해당 학생 찾기
-      const studentData = studentListData.students.find((s: any) => s.id === studentId);
+      const studentData = surveyData.students.find((s: any) => s.id === studentId);
       if (!studentData) {
         alert('학생 정보를 찾을 수 없습니다.');
         navigate(-1);
@@ -66,6 +72,16 @@ const StudentConfirmPage = () => {
       }
 
       setStudent(studentData);
+      
+      // 학급 정보도 설정
+      if (surveyData.classroom) {
+        setClassroomInfo({
+          school: surveyData.classroom.school_name,
+          grade: surveyData.classroom.grade.toString(),
+          classNumber: surveyData.classroom.class_number.toString(),
+          teacherName: surveyData.classroom.teacher_name
+        });
+      }
     } catch (error) {
       console.error('Error:', error)
       alert('학생 정보를 불러오는 중 오류가 발생했습니다.')
@@ -178,10 +194,10 @@ const StudentConfirmPage = () => {
           {/* 학교 정보 */}
           <div className="space-y-2">
             <h1 className="text-2xl font-bold text-gray-800">
-              {school}
+              {classroomInfo?.school || '학교'}
             </h1>
             <h2 className="text-3xl font-bold text-gray-800">
-              {grade}학년 {classNumber}반 {student.name}
+              {classroomInfo?.grade}학년 {classroomInfo?.classNumber}반 {student.name}
             </h2>
           </div>
 

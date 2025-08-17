@@ -21,7 +21,8 @@ interface Student {
 
 interface Response {
   question_id: string
-  target_id: string
+  target_ids: string[]
+  answer_value: string
 }
 
 const SurveyQuestionsPage = () => {
@@ -55,45 +56,22 @@ const SurveyQuestionsPage = () => {
     try {
       setLoading(true)
       
-      // 토큰 검증
-      const { data: tokenData, error: tokenError } = await supabase.functions.invoke('verify-token', {
+      // 새로운 get-survey-data Edge Function 사용
+      const { data: surveyData, error: surveyError } = await supabase.functions.invoke('get-survey-data', {
         body: { token: surveyToken }
       });
 
-      if (tokenError || !tokenData?.valid) {
-        console.error('Token verification failed:', tokenError);
+      if (surveyError || !surveyData) {
+        console.error('Survey data loading failed:', surveyError);
         alert('유효하지 않은 접근입니다.');
         navigate("/");
         return;
       }
 
-      // 문항들 가져오기 (직접 호출 - questions 테이블은 public access 가능)
-      const { data: questionsData, error: questionsError } = await supabase
-        .from('questions')
-        .select('*')
-        .order('created_at', { ascending: true })
+      // 본인 제외한 학생들
+      const filteredStudents = surveyData.students.filter((s: any) => s.id !== respondentId);
 
-      if (questionsError) {
-        console.error('Error loading questions:', questionsError)
-        alert('문항을 불러오는 중 오류가 발생했습니다.')
-        return
-      }
-
-      // 토큰으로 학생 목록 가져오기
-      const { data: studentListData, error: studentError } = await supabase.functions.invoke('get-student-list', {
-        body: { token: surveyToken }
-      });
-
-      if (studentError || !studentListData?.students) {
-        console.error('Error loading students:', studentError);
-        alert('학생 목록을 불러오는 중 오류가 발생했습니다.');
-        return;
-      }
-
-      // 본인 제외
-      const filteredStudents = studentListData.students.filter((s: any) => s.id !== respondentId);
-
-      setQuestions(questionsData || [])
+      setQuestions(surveyData.questions || [])
       setStudents(filteredStudents || [])
     } catch (error) {
       console.error('Error:', error)
@@ -169,7 +147,8 @@ const SurveyQuestionsPage = () => {
     // 현재 응답 저장
     const newResponse: Response = {
       question_id: questions[currentQuestionIndex].id,
-      target_id: selectedStudentId
+      target_ids: [selectedStudentId],
+      answer_value: "selected"
     }
 
     const updatedResponses = [...responses]
@@ -198,7 +177,7 @@ const SurveyQuestionsPage = () => {
       setCurrentQuestionIndex(currentQuestionIndex - 1)
       // 이전 응답이 있다면 복원
       const prevResponse = responses.find(r => r.question_id === questions[currentQuestionIndex - 1].id)
-      setSelectedStudentId(prevResponse?.target_id || "")
+      setSelectedStudentId(prevResponse?.target_ids?.[0] || "")
     }
   }
 
@@ -210,12 +189,12 @@ const SurveyQuestionsPage = () => {
       console.log('Respondent ID:', respondentId)
 
       if (surveyToken) {
-        // 토큰 기반 제출
+        // 토큰 기반 제출 - 새로운 Edge Function 사용
         const { data, error } = await supabase.functions.invoke('submit-survey-response', {
           body: { 
             token: surveyToken,
-            responses: finalResponses,
-            respondentId: respondentId
+            respondent_id: respondentId,
+            responses: finalResponses
           }
         });
 
@@ -250,7 +229,7 @@ const SurveyQuestionsPage = () => {
 
         const targetsToSave = finalResponses.map((response, index) => ({
           response_id: savedResponses[index].id,
-          target_id: response.target_id,
+          target_id: response.target_ids[0], // 첫 번째 target_id 사용
           extra_value: 0
         }))
 
