@@ -381,19 +381,17 @@ export const SurveyManagement = ({
       });
     }
   };
-  const getQRCodeURL = () => {
-    if (!selectedRoundForQR) return "";
 
-    // QR코드 URL 생성 (실제 구현 시 설문 ID와 함께)
-    const params = new URLSearchParams({
-      school,
-      grade,
-      class: classNumber,
-      teacher: teacherName,
-      round: selectedRoundForQR.id
-    });
-    return `${window.location.origin}/survey?${params.toString()}`;
-  };
+  const getQRCodeURL = () => {
+  if (!selectedRoundForQR || !selectedRoundForQR.token) return "";
+
+  const params = new URLSearchParams({
+    token: selectedRoundForQR.token
+  });
+
+  return `${window.location.origin}/survey?${params.toString()}`;
+};
+
   return <Card className="p-6 space-y-6">
       <h2 className="text-xl font-bold text-foreground">설문 관리</h2>
       
