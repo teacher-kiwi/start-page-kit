@@ -18,7 +18,7 @@ interface Student {
 }
 
 interface Response {
-  question_id: string
+  survey_question_id: string
   target_ids: string[]
   answer_value: string
 }
@@ -131,29 +131,33 @@ const SurveyQuestionsPage = () => {
     setSelectedStudentId(studentId)
   }
 
+
+
   const handleNext = () => {
     if (!selectedStudentId) {
       alert('친구를 선택해주세요.')
       return
     }
-
+  
     const newResponse: Response = {
-      question_id: questions[currentQuestionIndex].id,
+      survey_question_id: questions[currentQuestionIndex].id,
       target_ids: [selectedStudentId],
       answer_value: "selected"
     }
-
+  
     const updatedResponses = [...responses]
-    const existingIndex = updatedResponses.findIndex(r => r.question_id === questions[currentQuestionIndex].id)
-    
+    const existingIndex = updatedResponses.findIndex(
+      r => r.survey_question_id === questions[currentQuestionIndex].id
+    )
+  
     if (existingIndex >= 0) {
       updatedResponses[existingIndex] = newResponse
     } else {
       updatedResponses.push(newResponse)
     }
-    
+  
     setResponses(updatedResponses)
-
+  
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1)
       setSelectedStudentId("")
@@ -173,7 +177,7 @@ const SurveyQuestionsPage = () => {
   const submitResponses = async (finalResponses: Response[]) => {
     try {
       setSubmitting(true)
-
+  
       if (surveyToken) {
         const { data, error } = await supabase.functions.invoke('submit-survey-response', {
           body: { 
@@ -181,20 +185,18 @@ const SurveyQuestionsPage = () => {
             respondent_id: respondentId,
             responses: finalResponses
           }
-        });
-
+        })
+  
         if (error || data?.error) {
-          console.error('Error submitting responses:', error || data.error);
-          alert('응답 제출 중 오류가 발생했습니다.');
-          return;
+          console.error('Error submitting responses:', error || data.error)
+          alert('응답 제출 중 오류가 발생했습니다.')
+          return
         }
-
-        alert('설문이 완료되었습니다!');
-        localStorage.removeItem('selected_student_id');
-        localStorage.removeItem('survey_token');
-        navigate('/');
-      } else {
-        // TODO: 기존 방식 저장 로직 유지 (필요시 제거 가능)
+  
+        alert('설문이 완료되었습니다!')
+        localStorage.removeItem('selected_student_id')
+        localStorage.removeItem('survey_token')
+        navigate('/')
       }
     } catch (error) {
       console.error('Error submitting responses:', error)
