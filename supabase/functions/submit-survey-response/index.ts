@@ -18,11 +18,11 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { token, responses, respondentId } = await req.json();
+    const { token, respondent_id, responses } = await req.json();
 
-    if (!token || !responses || !respondentId) {
+    if (!token || !responses || !respondent_id) {
       return new Response(
-        JSON.stringify({ error: 'Token, responses, and respondentId are required' }),
+        JSON.stringify({ error: 'Token, responses, and respondent_id are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -46,7 +46,7 @@ serve(async (req) => {
     const { data: respondentData, error: respondentError } = await supabase
       .from('students')
       .select('classroom_id')
-      .eq('id', respondentId)
+      .eq('id', respondent_id)
       .single();
 
     if (respondentError || !respondentData || respondentData.classroom_id !== surveyData.classroom_id) {
@@ -56,16 +56,17 @@ serve(async (req) => {
       );
     }
 
-    // Save responses
-    const responsesToSave = responses.map((response: any) => ({
+    // Save responses to relationship_responses table
+    const responsesToInsert = responses.map((response: any) => ({
       survey_id: surveyData.id,
-      survey_question_id: null, // Using direct questions for now
-      respondent_id: respondentId
+      respondent_id: respondent_id,
+      survey_question_id: response.question_id,
+      answer_value: response.answer_value || null
     }));
 
     const { data: savedResponses, error: responseError } = await supabase
       .from('relationship_responses')
-      .insert(responsesToSave)
+      .insert(responsesToInsert)
       .select('id');
 
     if (responseError) {
@@ -76,23 +77,33 @@ serve(async (req) => {
       );
     }
 
-    // Save response targets
-    const targetsToSave = responses.map((response: any, index: number) => ({
-      response_id: savedResponses[index].id,
-      target_id: response.target_id,
-      extra_value: 0
-    }));
+    // Save response targets for each response
+    const allTargetsToSave: any[] = [];
+    
+    responses.forEach((response: any, responseIndex: number) => {
+      if (response.target_ids && Array.isArray(response.target_ids)) {
+        response.target_ids.forEach((target_id: string) => {
+          allTargetsToSave.push({
+            response_id: savedResponses[responseIndex].id,
+            target_id: target_id,
+            extra_value: 0
+          });
+        });
+      }
+    });
 
-    const { error: targetError } = await supabase
-      .from('relationship_response_targets')
-      .insert(targetsToSave);
+    if (allTargetsToSave.length > 0) {
+      const { error: targetError } = await supabase
+        .from('relationship_response_targets')
+        .insert(allTargetsToSave);
 
-    if (targetError) {
-      console.error('Error saving targets:', targetError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to save response targets' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      if (targetError) {
+        console.error('Error saving targets:', targetError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to save response targets' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     return new Response(
