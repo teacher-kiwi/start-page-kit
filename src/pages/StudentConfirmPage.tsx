@@ -137,12 +137,17 @@ const StudentConfirmPage = () => {
   }
 
   const handleStart = () => {
-    // 토큰 저장
-    if (token) {
-      localStorage.setItem('survey_token', token)
+    // ✅ 학생 ID 저장 (이게 없으면 설문 문항 페이지에서 에러 발생)
+    if (student) {
+      localStorage.setItem('selected_student_id', student.id)
     }
-    // 설문 페이지로 이동
-    navigate('/survey-questions')
+
+    // ✅ 토큰 기반 설문 페이지로 이동
+    if (token) {
+      navigate(`/survey-questions?token=${token}`)
+    } else {
+      navigate("/survey-questions")
+    }
   }
 
   if (loading) {
