@@ -34,7 +34,6 @@ serve(async (req) => {
         id,
         title,
         classroom_id,
-        token_created_at,
         classrooms!inner(
           id,
           school_name,
@@ -44,22 +43,13 @@ serve(async (req) => {
         )
       `)
       .eq('token', token)
+      .gte('created_at', new Date(Date.now() - 30 * 60 * 1000).toISOString())
       .single();
 
     if (surveyError || !surveyData) {
       console.error('Survey verification failed:', surveyError);
       return new Response(
-        JSON.stringify({ error: 'Invalid token' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // 토큰 만료 확인 (30분)
-    const now = new Date();
-    const createdAt = new Date(surveyData.token_created_at);
-    if (now.getTime() - createdAt.getTime() > 30 * 60 * 1000) {
-      return new Response(
-        JSON.stringify({ error: 'Expired token' }),
+        JSON.stringify({ error: 'Invalid or expired token' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -112,7 +102,7 @@ serve(async (req) => {
       },
       students: studentsData || [],
       questions: questionsData?.map(sq => ({
-        id: sq.questions.id,
+        id: sq.id,
         question_text: sq.questions.question_text
       })) || []
     };
