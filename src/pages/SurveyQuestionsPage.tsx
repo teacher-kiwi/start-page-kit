@@ -39,24 +39,19 @@ const SurveyQuestionsPage = () => {
   const surveyToken = localStorage.getItem('survey_token')
 
   useEffect(() => {
-    if (!respondentId) {
-      alert('학생 정보가 없습니다.')
+    if (!respondentId || !surveyToken) {
+      alert('유효하지 않은 접근입니다.')
       navigate('/')
       return
     }
-
-    if (surveyToken) {
-      loadDataWithToken()
-    } else {
-      loadData()
-    }
+    loadDataWithToken()
   }, [respondentId, surveyToken, navigate])
 
   const loadDataWithToken = async () => {
     try {
       setLoading(true)
       
-      // 새로운 get-survey-data Edge Function 사용
+      // Edge Function 호출 (학생 목록 + 문항)
       const { data: surveyData, error: surveyError } = await supabase.functions.invoke('get-survey-data', {
         body: { token: surveyToken }
       });
@@ -68,64 +63,11 @@ const SurveyQuestionsPage = () => {
         return;
       }
 
-      // 본인 제외한 학생들
+      // 본인 제외한 학생 목록
       const filteredStudents = surveyData.students.filter((s: any) => s.id !== respondentId);
 
       setQuestions(surveyData.questions || [])
       setStudents(filteredStudents || [])
-    } catch (error) {
-      console.error('Error:', error)
-      alert('데이터를 불러오는 중 오류가 발생했습니다.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const loadData = async () => {
-    try {
-      setLoading(true)
-      
-      // 문항들 가져오기
-      const { data: questionsData, error: questionsError } = await supabase
-        .from('questions' as any)
-        .select('*')
-        .order('created_at', { ascending: true })
-
-      if (questionsError) {
-        console.error('Error loading questions:', questionsError)
-        alert('문항을 불러오는 중 오류가 발생했습니다.')
-        return
-      }
-
-      // 응답자 학생의 정보로 같은 학급 학생들 가져오기
-      const { data: respondentData, error: respondentError } = await supabase
-        .from('students')
-        .select('classroom_id')
-        .eq('id', respondentId)
-        .single()
-
-      if (respondentError || !respondentData) {
-        console.error('Error loading respondent:', respondentError)
-        alert('응답자 정보를 찾을 수 없습니다.')
-        return
-      }
-
-      // 같은 학급의 다른 학생들 가져오기
-      const { data: studentsData, error: studentsError } = await supabase
-        .from('students')
-        .select('id, name, photo_url, student_number')
-        .eq('classroom_id', respondentData.classroom_id)
-        .neq('id', respondentId) // 본인 제외
-        .order('student_number', { ascending: true })
-
-      if (studentsError) {
-        console.error('Error loading students:', studentsError)
-        alert('학생 목록을 불러오는 중 오류가 발생했습니다.')
-        return
-      }
-
-      setQuestions((questionsData as unknown as Question[]) || [])
-      setStudents(studentsData || [])
     } catch (error) {
       console.error('Error:', error)
       alert('데이터를 불러오는 중 오류가 발생했습니다.')
@@ -167,7 +109,7 @@ const SurveyQuestionsPage = () => {
       setCurrentQuestionIndex(currentQuestionIndex + 1)
       setSelectedStudentId("")
     } else {
-      // 모든 문항 완료 - 결과 저장
+      // 모든 문항 완료 → Edge Function으로 제출
       submitResponses(updatedResponses)
     }
   }
@@ -175,7 +117,7 @@ const SurveyQuestionsPage = () => {
   const handlePrevious = () => {
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex(currentQuestionIndex - 1)
-      // 이전 응답이 있다면 복원
+      // 이전 응답 복원
       const prevResponse = responses.find(r => r.question_id === questions[currentQuestionIndex - 1].id)
       setSelectedStudentId(prevResponse?.target_ids?.[0] || "")
     }
@@ -185,69 +127,24 @@ const SurveyQuestionsPage = () => {
     try {
       setSubmitting(true)
       
-      console.log('Submitting responses:', finalResponses)
-      console.log('Respondent ID:', respondentId)
-
-      if (surveyToken) {
-        // 토큰 기반 제출 - 새로운 Edge Function 사용
-        const { data, error } = await supabase.functions.invoke('submit-survey-response', {
-          body: { 
-            token: surveyToken,
-            respondent_id: respondentId,
-            responses: finalResponses
-          }
-        });
-
-        if (error) {
-          console.error('Error submitting responses:', error);
-          alert('응답 제출 중 오류가 발생했습니다.');
-          return;
+      const { error } = await supabase.functions.invoke('submit-survey-response', {
+        body: { 
+          token: surveyToken,
+          respondent_id: respondentId,
+          responses: finalResponses
         }
+      });
 
-        alert('설문이 완료되었습니다!');
-        localStorage.removeItem('selected_student_id');
-        localStorage.removeItem('survey_token');
-        navigate('/');
-      } else {
-        // 기존 방식 제출
-        const responsesToSave = finalResponses.map(response => ({
-          survey_id: null,
-          survey_question_id: null,
-          respondent_id: respondentId
-        }))
-
-        const { data: savedResponses, error: responseError } = await supabase
-          .from('relationship_responses')
-          .insert(responsesToSave)
-          .select('id')
-
-        if (responseError) {
-          console.error('Error saving responses:', responseError)
-          alert('응답 저장 중 오류가 발생했습니다.')
-          return
-        }
-
-        const targetsToSave = finalResponses.map((response, index) => ({
-          response_id: savedResponses[index].id,
-          target_id: response.target_ids[0], // 첫 번째 target_id 사용
-          extra_value: 0
-        }))
-
-        const { error: targetError } = await supabase
-          .from('relationship_response_targets')
-          .insert(targetsToSave)
-
-        if (targetError) {
-          console.error('Error saving targets:', targetError)
-          alert('응답 대상 저장 중 오류가 발생했습니다.')
-          return
-        }
-
-        alert('설문이 완료되었습니다!')
-        localStorage.removeItem('selected_student_id')
-        navigate('/')
+      if (error) {
+        console.error('Error submitting responses:', error);
+        alert('응답 제출 중 오류가 발생했습니다.');
+        return;
       }
-      
+
+      alert('설문이 완료되었습니다!');
+      localStorage.removeItem('selected_student_id');
+      localStorage.removeItem('survey_token');
+      navigate('/');
     } catch (error) {
       console.error('Error submitting responses:', error)
       alert('응답 제출 중 오류가 발생했습니다.')
@@ -286,7 +183,7 @@ const SurveyQuestionsPage = () => {
   return (
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-6xl mx-auto">
-        {/* 상단 진행률 */}
+        {/* 진행률 */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm text-gray-600">
@@ -311,7 +208,7 @@ const SurveyQuestionsPage = () => {
           </h1>
         </div>
 
-        {/* 학생 그리드 */}
+        {/* 학생 선택 */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-4 mb-8">
           {students.map((student, index) => (
             <Card 
@@ -324,7 +221,6 @@ const SurveyQuestionsPage = () => {
               onClick={() => handleStudentSelect(student.id)}
             >
               <div className="text-center space-y-3">
-                {/* 학생 사진 */}
                 <div className="w-20 h-24 mx-auto bg-gray-100 rounded-lg overflow-hidden border-2 border-white shadow-sm">
                   {student.photo_url ? (
                     <img 
@@ -338,8 +234,6 @@ const SurveyQuestionsPage = () => {
                     </div>
                   )}
                 </div>
-                
-                {/* 번호와 이름 */}
                 <div className="space-y-1">
                   <p className="text-sm font-semibold text-gray-800">
                     {student.student_number || index + 1}번 {student.name}
@@ -350,7 +244,7 @@ const SurveyQuestionsPage = () => {
           ))}
         </div>
 
-        {/* 네비게이션 버튼 */}
+        {/* 네비게이션 */}
         <div className="flex justify-between items-center">
           <Button
             onClick={handlePrevious}
