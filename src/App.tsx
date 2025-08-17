@@ -23,8 +23,8 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
-          
-          {/* 로그인해야 접근 가능 */}
+        
+          {/* 선생님 전용 (로그인 필요) */}
           <Route 
             path="/dashboard" 
             element={
@@ -33,16 +33,22 @@ const App = () => (
               </ProtectedRoute>
             } 
           />
+          <Route 
+            path="/results" 
+            element={
+              <ProtectedRoute>
+                <ResultsPage />
+              </ProtectedRoute>
+            } 
+          />
         
           {/* 학생 전용 (로그인 불필요) */}
           <Route path="/survey" element={<SurveyPage />} />
           <Route path="/student-confirm" element={<StudentConfirmPage />} />
           <Route path="/survey-questions" element={<SurveyQuestionsPage />} />
-          <Route path="/results" element={<ResultsPage />} />
         
           <Route path="*" element={<NotFound />} />
         </Routes>
-
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
