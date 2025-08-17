@@ -23,15 +23,26 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/dashboard" element={<Dashboard />} />
           
+          {/* 로그인해야 접근 가능 */}
+          <Route 
+            path="/dashboard" 
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            } 
+          />
+        
+          {/* 학생 전용 (로그인 불필요) */}
           <Route path="/survey" element={<SurveyPage />} />
           <Route path="/student-confirm" element={<StudentConfirmPage />} />
           <Route path="/survey-questions" element={<SurveyQuestionsPage />} />
           <Route path="/results" element={<ResultsPage />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+        
           <Route path="*" element={<NotFound />} />
         </Routes>
+
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
