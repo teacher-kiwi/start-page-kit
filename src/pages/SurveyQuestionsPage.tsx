@@ -8,8 +8,6 @@ import { ChevronRight, ArrowLeft } from "lucide-react"
 interface Question {
   id: string
   question_text: string
-  is_default: boolean
-  created_at: string
 }
 
 interface Student {
@@ -39,35 +37,88 @@ const SurveyQuestionsPage = () => {
   const surveyToken = localStorage.getItem('survey_token')
 
   useEffect(() => {
-    if (!respondentId || !surveyToken) {
-      alert('유효하지 않은 접근입니다.')
+    if (!respondentId) {
+      alert('학생 정보가 없습니다.')
       navigate('/')
       return
     }
-    loadDataWithToken()
+
+    if (surveyToken) {
+      loadDataWithToken()
+    } else {
+      loadData()
+    }
   }, [respondentId, surveyToken, navigate])
 
   const loadDataWithToken = async () => {
     try {
       setLoading(true)
       
-      // Edge Function 호출 (학생 목록 + 문항)
       const { data: surveyData, error: surveyError } = await supabase.functions.invoke('get-survey-data', {
         body: { token: surveyToken }
       });
 
-      if (surveyError || !surveyData) {
-        console.error('Survey data loading failed:', surveyError);
+      if (surveyError || !surveyData || surveyData.error) {
+        console.error('Survey data loading failed:', surveyError || surveyData?.error);
         alert('유효하지 않은 접근입니다.');
         navigate("/");
         return;
       }
 
-      // 본인 제외한 학생 목록
       const filteredStudents = surveyData.students.filter((s: any) => s.id !== respondentId);
 
       setQuestions(surveyData.questions || [])
       setStudents(filteredStudents || [])
+    } catch (error) {
+      console.error('Error:', error)
+      alert('데이터를 불러오는 중 오류가 발생했습니다.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadData = async () => {
+    try {
+      setLoading(true)
+      
+      const { data: questionsData, error: questionsError } = await supabase
+        .from('questions')
+        .select('id, question_text')
+        .order('created_at', { ascending: true })
+
+      if (questionsError) {
+        console.error('Error loading questions:', questionsError)
+        alert('문항을 불러오는 중 오류가 발생했습니다.')
+        return
+      }
+
+      const { data: respondentData, error: respondentError } = await supabase
+        .from('students')
+        .select('classroom_id')
+        .eq('id', respondentId)
+        .single()
+
+      if (respondentError || !respondentData) {
+        console.error('Error loading respondent:', respondentError)
+        alert('응답자 정보를 찾을 수 없습니다.')
+        return
+      }
+
+      const { data: studentsData, error: studentsError } = await supabase
+        .from('students')
+        .select('id, name, photo_url, student_number')
+        .eq('classroom_id', respondentData.classroom_id)
+        .neq('id', respondentId)
+        .order('student_number', { ascending: true })
+
+      if (studentsError) {
+        console.error('Error loading students:', studentsError)
+        alert('학생 목록을 불러오는 중 오류가 발생했습니다.')
+        return
+      }
+
+      setQuestions((questionsData as Question[]) || [])
+      setStudents(studentsData || [])
     } catch (error) {
       console.error('Error:', error)
       alert('데이터를 불러오는 중 오류가 발생했습니다.')
@@ -86,7 +137,6 @@ const SurveyQuestionsPage = () => {
       return
     }
 
-    // 현재 응답 저장
     const newResponse: Response = {
       question_id: questions[currentQuestionIndex].id,
       target_ids: [selectedStudentId],
@@ -104,12 +154,10 @@ const SurveyQuestionsPage = () => {
     
     setResponses(updatedResponses)
 
-    // 다음 문항으로 이동하거나 완료
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1)
       setSelectedStudentId("")
     } else {
-      // 모든 문항 완료 → Edge Function으로 제출
       submitResponses(updatedResponses)
     }
   }
@@ -117,7 +165,6 @@ const SurveyQuestionsPage = () => {
   const handlePrevious = () => {
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex(currentQuestionIndex - 1)
-      // 이전 응답 복원
       const prevResponse = responses.find(r => r.question_id === questions[currentQuestionIndex - 1].id)
       setSelectedStudentId(prevResponse?.target_ids?.[0] || "")
     }
@@ -126,25 +173,29 @@ const SurveyQuestionsPage = () => {
   const submitResponses = async (finalResponses: Response[]) => {
     try {
       setSubmitting(true)
-      
-      const { error } = await supabase.functions.invoke('submit-survey-response', {
-        body: { 
-          token: surveyToken,
-          respondent_id: respondentId,
-          responses: finalResponses
+
+      if (surveyToken) {
+        const { data, error } = await supabase.functions.invoke('submit-survey-response', {
+          body: { 
+            token: surveyToken,
+            respondent_id: respondentId,
+            responses: finalResponses
+          }
+        });
+
+        if (error || data?.error) {
+          console.error('Error submitting responses:', error || data.error);
+          alert('응답 제출 중 오류가 발생했습니다.');
+          return;
         }
-      });
 
-      if (error) {
-        console.error('Error submitting responses:', error);
-        alert('응답 제출 중 오류가 발생했습니다.');
-        return;
+        alert('설문이 완료되었습니다!');
+        localStorage.removeItem('selected_student_id');
+        localStorage.removeItem('survey_token');
+        navigate('/');
+      } else {
+        // TODO: 기존 방식 저장 로직 유지 (필요시 제거 가능)
       }
-
-      alert('설문이 완료되었습니다!');
-      localStorage.removeItem('selected_student_id');
-      localStorage.removeItem('survey_token');
-      navigate('/');
     } catch (error) {
       console.error('Error submitting responses:', error)
       alert('응답 제출 중 오류가 발생했습니다.')
@@ -234,17 +285,15 @@ const SurveyQuestionsPage = () => {
                     </div>
                   )}
                 </div>
-                <div className="space-y-1">
-                  <p className="text-sm font-semibold text-gray-800">
-                    {student.student_number || index + 1}번 {student.name}
-                  </p>
-                </div>
+                <p className="text-sm font-semibold text-gray-800">
+                  {student.student_number || index + 1}번 {student.name}
+                </p>
               </div>
             </Card>
           ))}
         </div>
 
-        {/* 네비게이션 */}
+        {/* 버튼 */}
         <div className="flex justify-between items-center">
           <Button
             onClick={handlePrevious}
