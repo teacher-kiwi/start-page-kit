@@ -32,12 +32,12 @@ serve(async (req) => {
       .from('surveys')
       .select('id, classroom_id')
       .eq('token', token)
-      .gte('created_at', new Date(Date.now() - 30 * 60 * 1000).toISOString())
+      .gte('token_expires_at', new Date().toISOString())
       .single();
-
+    
     if (surveyError || !surveyData) {
       return new Response(
-        JSON.stringify({ error: 'Invalid or expired token' }),
+        JSON.stringify({ error: 'Invalid or expired token', code: 'TOKEN_EXPIRED' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
