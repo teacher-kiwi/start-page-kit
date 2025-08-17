@@ -23,15 +23,68 @@ const StudentConfirmPage = () => {
   const classNumber = searchParams.get("class")
   const teacherName = searchParams.get("teacher")
   const studentId = searchParams.get("studentId")
+  const token = searchParams.get("token")
 
   useEffect(() => {
-    if (!school || !grade || !classNumber || !teacherName || !studentId) {
+    if (token) {
+      // 토큰 기반 로딩
+      if (!studentId) {
+        navigate("/")
+        return
+      }
+      loadStudentWithToken()
+    } else if (!school || !grade || !classNumber || !teacherName || !studentId) {
       navigate("/")
       return
+    } else {
+      loadStudent()
     }
+  }, [school, grade, classNumber, teacherName, studentId, token, navigate])
 
-    loadStudent()
-  }, [school, grade, classNumber, teacherName, studentId, navigate])
+  const loadStudentWithToken = async () => {
+    try {
+      setLoading(true)
+      
+      // 토큰 검증
+      const { data: tokenData, error: tokenError } = await supabase.functions.invoke('verify-token', {
+        body: { token }
+      });
+
+      if (tokenError || !tokenData?.valid) {
+        console.error('Token verification failed:', tokenError);
+        alert('유효하지 않은 접근입니다. QR코드를 다시 스캔해주세요.');
+        navigate("/");
+        return;
+      }
+
+      // Edge function으로 학생 정보 가져오기
+      const { data: studentListData, error: studentError } = await supabase.functions.invoke('get-student-list', {
+        body: { token }
+      });
+
+      if (studentError || !studentListData?.students) {
+        console.error('Error loading students:', studentError);
+        alert('학생 정보를 불러오는 중 오류가 발생했습니다.');
+        return;
+      }
+
+      // 해당 학생 찾기
+      const studentData = studentListData.students.find((s: any) => s.id === studentId);
+      if (!studentData) {
+        alert('학생 정보를 찾을 수 없습니다.');
+        navigate(-1);
+        return;
+      }
+
+      setStudent(studentData);
+    } catch (error) {
+      console.error('Error:', error)
+      alert('학생 정보를 불러오는 중 오류가 발생했습니다.')
+      navigate(-1)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const loadStudent = async () => {
     try {
@@ -65,16 +118,24 @@ const StudentConfirmPage = () => {
     localStorage.removeItem('selected_student_id')
     
     // 학생 선택 페이지로 돌아가기
-    const params = new URLSearchParams({
-      school: school!,
-      grade: grade!,
-      class: classNumber!,
-      teacher: teacherName!
-    })
-    navigate(`/survey?${params.toString()}`)
+    if (token) {
+      navigate(`/survey?token=${token}`)
+    } else {
+      const params = new URLSearchParams({
+        school: school!,
+        grade: grade!,
+        class: classNumber!,
+        teacher: teacherName!
+      })
+      navigate(`/survey?${params.toString()}`)
+    }
   }
 
   const handleStart = () => {
+    // 토큰 저장
+    if (token) {
+      localStorage.setItem('survey_token', token)
+    }
     // 설문 페이지로 이동
     navigate('/survey-questions')
   }

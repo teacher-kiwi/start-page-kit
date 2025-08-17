@@ -8,7 +8,8 @@ import { ChevronRight, ArrowLeft } from "lucide-react"
 interface Question {
   id: string
   question_text: string
-  polarity: string
+  is_default: boolean
+  created_at: string
 }
 
 interface Student {
@@ -34,6 +35,7 @@ const SurveyQuestionsPage = () => {
   const navigate = useNavigate()
 
   const respondentId = localStorage.getItem('selected_student_id')
+  const surveyToken = localStorage.getItem('survey_token')
 
   useEffect(() => {
     if (!respondentId) {
@@ -42,8 +44,64 @@ const SurveyQuestionsPage = () => {
       return
     }
 
-    loadData()
-  }, [respondentId, navigate])
+    if (surveyToken) {
+      loadDataWithToken()
+    } else {
+      loadData()
+    }
+  }, [respondentId, surveyToken, navigate])
+
+  const loadDataWithToken = async () => {
+    try {
+      setLoading(true)
+      
+      // 토큰 검증
+      const { data: tokenData, error: tokenError } = await supabase.functions.invoke('verify-token', {
+        body: { token: surveyToken }
+      });
+
+      if (tokenError || !tokenData?.valid) {
+        console.error('Token verification failed:', tokenError);
+        alert('유효하지 않은 접근입니다.');
+        navigate("/");
+        return;
+      }
+
+      // 문항들 가져오기 (직접 호출 - questions 테이블은 public access 가능)
+      const { data: questionsData, error: questionsError } = await supabase
+        .from('questions')
+        .select('*')
+        .order('created_at', { ascending: true })
+
+      if (questionsError) {
+        console.error('Error loading questions:', questionsError)
+        alert('문항을 불러오는 중 오류가 발생했습니다.')
+        return
+      }
+
+      // 토큰으로 학생 목록 가져오기
+      const { data: studentListData, error: studentError } = await supabase.functions.invoke('get-student-list', {
+        body: { token: surveyToken }
+      });
+
+      if (studentError || !studentListData?.students) {
+        console.error('Error loading students:', studentError);
+        alert('학생 목록을 불러오는 중 오류가 발생했습니다.');
+        return;
+      }
+
+      // 본인 제외
+      const filteredStudents = studentListData.students.filter((s: any) => s.id !== respondentId);
+
+      setQuestions(questionsData || [])
+      setStudents(filteredStudents || [])
+    } catch (error) {
+      console.error('Error:', error)
+      alert('데이터를 불러오는 중 오류가 발생했습니다.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const loadData = async () => {
     try {
@@ -151,47 +209,65 @@ const SurveyQuestionsPage = () => {
       console.log('Submitting responses:', finalResponses)
       console.log('Respondent ID:', respondentId)
 
-      // 1. relationship_responses 테이블에 응답 정보 저장
-      const responsesToSave = finalResponses.map(response => ({
-        survey_id: null, // 현재는 설문 ID가 없으므로 null로 설정
-        survey_question_id: null, // 현재는 survey_questions가 아닌 직접 questions를 사용
-        respondent_id: respondentId
-      }))
+      if (surveyToken) {
+        // 토큰 기반 제출
+        const { data, error } = await supabase.functions.invoke('submit-survey-response', {
+          body: { 
+            token: surveyToken,
+            responses: finalResponses,
+            respondentId: respondentId
+          }
+        });
 
-      console.log('Data to save:', responsesToSave)
+        if (error) {
+          console.error('Error submitting responses:', error);
+          alert('응답 제출 중 오류가 발생했습니다.');
+          return;
+        }
 
-      const { data: savedResponses, error: responseError } = await supabase
-        .from('relationship_responses')
-        .insert(responsesToSave)
-        .select('id')
+        alert('설문이 완료되었습니다!');
+        localStorage.removeItem('selected_student_id');
+        localStorage.removeItem('survey_token');
+        navigate('/');
+      } else {
+        // 기존 방식 제출
+        const responsesToSave = finalResponses.map(response => ({
+          survey_id: null,
+          survey_question_id: null,
+          respondent_id: respondentId
+        }))
 
-      if (responseError) {
-        console.error('Error saving responses:', responseError)
-        alert('응답 저장 중 오류가 발생했습니다.')
-        return
+        const { data: savedResponses, error: responseError } = await supabase
+          .from('relationship_responses')
+          .insert(responsesToSave)
+          .select('id')
+
+        if (responseError) {
+          console.error('Error saving responses:', responseError)
+          alert('응답 저장 중 오류가 발생했습니다.')
+          return
+        }
+
+        const targetsToSave = finalResponses.map((response, index) => ({
+          response_id: savedResponses[index].id,
+          target_id: response.target_id,
+          extra_value: 0
+        }))
+
+        const { error: targetError } = await supabase
+          .from('relationship_response_targets')
+          .insert(targetsToSave)
+
+        if (targetError) {
+          console.error('Error saving targets:', targetError)
+          alert('응답 대상 저장 중 오류가 발생했습니다.')
+          return
+        }
+
+        alert('설문이 완료되었습니다!')
+        localStorage.removeItem('selected_student_id')
+        navigate('/')
       }
-
-      // 2. relationship_response_targets 테이블에 선택된 학생 정보 저장
-      const targetsToSave = finalResponses.map((response, index) => ({
-        response_id: savedResponses[index].id,
-        target_id: response.target_id,
-        extra_value: 0 // 기본값
-      }))
-
-      const { error: targetError } = await supabase
-        .from('relationship_response_targets')
-        .insert(targetsToSave)
-
-      if (targetError) {
-        console.error('Error saving targets:', targetError)
-        alert('응답 대상 저장 중 오류가 발생했습니다.')
-        return
-      }
-
-      // 완료 처리
-      alert('설문이 완료되었습니다!')
-      localStorage.removeItem('selected_student_id')
-      navigate('/')
       
     } catch (error) {
       console.error('Error submitting responses:', error)
